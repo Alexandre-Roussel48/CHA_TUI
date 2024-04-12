@@ -3,6 +3,8 @@ client1
 client2
 serveur
 
+.vscode
+
 # Prerequisites
 *.d
 
