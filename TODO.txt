@@ -1,0 +1,4 @@
+[x] Ajouter prompt pour taper message client1&2
+[] Ajouter REUSE pour bind socket serveur
+[] verification argc au lancement client1&2, serveur
+[] commenter le code
