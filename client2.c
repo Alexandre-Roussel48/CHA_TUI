@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
   while(envoie){
     char* messageRecu = (char*)malloc(TAILLE_MESS);
     recv(dS, messageRecu, TAILLE_MESS, 0);
-    printf("Réponse reçue : %d\n", messageRecu);
+    printf("Réponse reçue : %s\n", messageRecu);
 
     // L'utilisateur entre son message
     char* messageEnvoie = (char*)malloc(TAILLE_MESS);
