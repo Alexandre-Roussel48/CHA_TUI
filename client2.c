@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define TAILLE_MESS 140
+
 int main(int argc, char *argv[]) {
 
   printf("Début programme\n");
@@ -18,13 +20,20 @@ int main(int argc, char *argv[]) {
   connect(dS, (struct sockaddr *) &aS, lgA) ;
   printf("Socket Connecté\n");
 
-  char * m = "TEST" ;
-  send(dS, m, strlen(m) , 0) ;
-  printf("Message Envoyé \n");
+  int envoie = 1;
+  while(envoie){
+    char* messageRecu = (char*)malloc(TAILLE_MESS);
+    recv(dS, messageRecu, TAILLE_MESS, 0);
+    printf("Réponse reçue : %d\n", messageRecu);
 
-  int r;
-  recv(dS, &r, sizeof(int), 0) ;
-  printf("Réponse reçue : %d\n", r) ;
+    // L'utilisateur entre son message
+    char* messageEnvoie = (char*)malloc(TAILLE_MESS);
+    fgets(messageEnvoie, TAILLE_MESS, stdin);
+
+    send(dS, messageEnvoie, strlen(messageEnvoie) , 0);
+    printf("Message Envoyé \n");
+    if(strcmp(messageEnvoie, "fin") == 0){envoie = 0;}
+  }
 
   shutdown(dS,2) ;
   printf("Fin du programme");
