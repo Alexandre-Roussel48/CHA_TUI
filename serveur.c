@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
       if (recv(dSC1, msg, TAILLE_MESS*sizeof(char), 0) > 0) {
         printf("Message reçu Client 1: %s\n", msg);
 
-        if (strcmp(msg, "fin") == 0) {
+        if (strcmp(msg, "fin\n") == 0) {
           break;
         }
 
