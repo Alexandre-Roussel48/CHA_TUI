@@ -3,15 +3,27 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 
 #define TAILLE_MESS 140
 #define PORT 5000
 
+int dS;
+
+void sigint_handler(int signal) {
+  char msg[140];
+  strcpy(msg, "fin\n");
+  send(dS, msg, TAILLE_MESS*sizeof(char), 0);
+  shutdown(dS, 2);
+  exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[]) {
 
-  printf("Début programme\n");
-  int dS = socket(PF_INET, SOCK_STREAM, 0);
+  printf("\x1b[34m");
+  dS = socket(PF_INET, SOCK_STREAM, 0);
   printf("Socket Créé\n");
+  signal(SIGINT, sigint_handler);
 
   struct sockaddr_in aS;
   aS.sin_family = AF_INET;
@@ -20,23 +32,26 @@ int main(int argc, char *argv[]) {
   socklen_t lgA = sizeof(struct sockaddr_in) ;
   connect(dS, (struct sockaddr *) &aS, lgA) ;
   printf("Socket Connecté\n");
+  printf("\x1b[32m\n");
 
-  int envoie = 1;
-  while(envoie){
-
+  while(1){
+    printf("\t> ");
     // L'utilisateur 1 entre son message
     char* messageEnvoie = (char*)malloc(TAILLE_MESS);
-    fgets(messageEnvoie, TAILLE_MESS*sizeof(char), stdin);
+    fgets(messageEnvoie, TAILLE_MESS, stdin);
 
     send(dS, messageEnvoie, TAILLE_MESS*sizeof(char), 0);
-    printf("Message Envoyé \n");
-    if(strcmp(messageEnvoie, "fin\n") == 0){envoie = 0;}
+    if(strcmp(messageEnvoie, "fin\n") == 0){break;}
 
     char* messageRecu = (char*)malloc(TAILLE_MESS);
-    recv(dS, messageRecu, TAILLE_MESS, 0);
-    printf("Réponse reçue : %s\n", messageRecu);
+    if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) == 0) {
+      break;
+    }
+    printf("\t/> %s", messageRecu);
   }
 
   shutdown(dS,2);
-  printf("Fin du programme");
+  printf("\x1b[34m");
+  printf("Fin du chat\n");
+  printf("\x1b[0m");
 }
