@@ -3,7 +3,6 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdio.h>
 #include <signal.h>
 
 #define TAILLE_MESS 140
@@ -13,12 +12,12 @@ int dS;
 
 void sigint_handler(int signal) {
   shutdown(dS, 2);
-  printf("Fin du programme\n");
   exit(EXIT_SUCCESS);
 }
 
 int main(int argc, char *argv[]) {
   
+  printf("\x1b[32m");
   printf("Début programme\n");
 
   dS = socket(PF_INET, SOCK_STREAM, 0);
@@ -36,18 +35,21 @@ int main(int argc, char *argv[]) {
   printf("Socket Nommé\n");
 
   listen(dS, 2) ;
-  printf("Mode écoute\n");
+  printf("Mode écoute\n\n");
+  printf("\x1b[0m");
 
   while(1) {
     socklen_t lg = sizeof(struct sockaddr_in) ;
 
     struct sockaddr_in aC1 ;
     int dSC1 = accept(dS, (struct sockaddr*) &aC1,&lg) ;
+    printf("\x1b[34m");
     printf("Client 1 Connecté\n");
 
     struct sockaddr_in aC2 ;
     int dSC2 = accept(dS, (struct sockaddr*) &aC2,&lg) ;
     printf("Client 2 Connecté\n");
+    printf("\x1b[0m");
 
     char* msg = calloc(TAILLE_MESS, sizeof(char));
     while (1) {
@@ -67,7 +69,7 @@ int main(int argc, char *argv[]) {
       if (recv(dSC2, msg, TAILLE_MESS*sizeof(char), 0) > 0) {
         printf("Message reçu Client 2: %s\n", msg);
 
-        if (strcmp(msg, "fin") == 0) {
+        if (strcmp(msg, "fin\n") == 0) {
           break;
         }
 
