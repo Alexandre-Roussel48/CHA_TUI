@@ -29,7 +29,10 @@ int main(int argc, char *argv[]) {
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY ;
   ad.sin_port = htons(PORT) ;
-  bind(dS, (struct sockaddr*)&ad, sizeof(ad)) ;
+  if (bind(dS, (struct sockaddr*)&ad, sizeof(ad)) < 0) {
+    perror("Bind failed");
+    exit(1);
+  }
   printf("Socket Nommé\n");
 
   listen(dS, 2) ;
