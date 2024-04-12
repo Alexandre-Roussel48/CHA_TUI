@@ -36,14 +36,14 @@ int main(int argc, char *argv[]) {
   printf("Mode écoute\n");
 
   while(1) {
+    socklen_t lg = sizeof(struct sockaddr_in) ;
+
     struct sockaddr_in aC1 ;
-    socklen_t lg1 = sizeof(struct sockaddr_in) ;
-    int dSC1 = accept(dS, (struct sockaddr*) &aC1,&lg1) ;
+    int dSC1 = accept(dS, (struct sockaddr*) &aC1,&lg) ;
     printf("Client 1 Connecté\n");
 
     struct sockaddr_in aC2 ;
-    socklen_t lg2 = sizeof(struct sockaddr_in) ;
-    int dSC2 = accept(dS, (struct sockaddr*) &aC2,&lg2) ;
+    int dSC2 = accept(dS, (struct sockaddr*) &aC2,&lg) ;
     printf("Client 2 Connecté\n");
 
     char* msg = calloc(TAILLE_MESS, sizeof(char));
