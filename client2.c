@@ -8,9 +8,11 @@
 #define TAILLE_MESS 140
 #define PORT 5001
 
-int dS;
+int dS; // Initialisation du descripteur de la socket
 
+// fonction qui permet d'arrêter le programme si un ctrl+C est exécuté
 void sigint_handler(int signal) {
+  // on force l'envoie du message fin pour terminer le programme
   char msg[140];
   strcpy(msg, "fin\n");
   send(dS, msg, TAILLE_MESS*sizeof(char), 0);
@@ -25,33 +27,38 @@ int main(int argc, char *argv[]) {
     printf("Erreur: format de commande: ./client1 <ServeurIP>");
     exit(EXIT_FAILURE);
   }
-  
+
+  // Permet de mettre le texte en couleur
   printf("\x1b[34m");
-  dS = socket(PF_INET, SOCK_STREAM, 0);
+  dS = socket(PF_INET, SOCK_STREAM, 0); // Création du socket pour le protocole TCP
   printf("Socket Créé\n");
-  signal(SIGINT, sigint_handler);
+
+  signal(SIGINT, sigint_handler); // Gestion du Ctrl+C
 
   struct sockaddr_in aS;
-  aS.sin_family = AF_INET;
-  inet_pton(AF_INET,argv[1],&(aS.sin_addr)) ;
-  aS.sin_port = htons(PORT) ;
-  socklen_t lgA = sizeof(struct sockaddr_in) ;
+  aS.sin_family = AF_INET; // L'IP du serveur sera une IPv4
+  inet_pton(AF_INET,argv[1],&(aS.sin_addr)); // Permet de spécifier l'adresse du serveur sous forme binaire
+  aS.sin_port = htons(PORT); // Permet de spécifier le port sûr lequel se connecter sous forme binaire
+  socklen_t lgA = sizeof(struct sockaddr_in);
+
   connect(dS, (struct sockaddr *) &aS, lgA) ;
   printf("Socket Connecté\n");
-  printf("\x1b[32m\n");
 
+  printf("\x1b[32m\n"); // Changement de couleur du texte pour la discussion
   while(1){
+    // L'utilisateur 2 reçoit un message
     char* messageRecu = (char*)malloc(TAILLE_MESS);
     if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) == 0) {
-      break;
+      break;  // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
     printf("\t/> %s", messageRecu);
 
     printf("\t> ");
-    // L'utilisateur entre son message
+    // L'utilisateur 2 entre son message
     char* messageEnvoie = (char*)malloc(TAILLE_MESS);
     fgets(messageEnvoie, TAILLE_MESS, stdin);
 
+    // Envoie du message au serveur
     send(dS, messageEnvoie, TAILLE_MESS*sizeof(char), 0);
     if(strcmp(messageEnvoie, "fin\n") == 0){break;}
   }
