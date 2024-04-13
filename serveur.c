@@ -6,7 +6,7 @@
 #include <signal.h>
 
 #define TAILLE_MESS 140
-#define PORT 5000
+#define PORT 5001
 
 int dS;
 
@@ -28,6 +28,8 @@ int main(int argc, char *argv[]) {
   ad.sin_family = AF_INET;
   ad.sin_addr.s_addr = INADDR_ANY ;
   ad.sin_port = htons(PORT) ;
+  int optval = 1;
+  setsockopt(dS, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
   if (bind(dS, (struct sockaddr*)&ad, sizeof(ad)) < 0) {
     perror("Bind failed");
     exit(1);
