@@ -27,12 +27,12 @@ int main(int argc, char *argv[]) {
     printf("Erreur: format de commande: ./client1 <ServeurIP>");
     exit(EXIT_FAILURE);
   }
-  
+
   printf("\x1b[34m"); // Permet de mettre le texte en couleur
   dS = socket(PF_INET, SOCK_STREAM, 0); // Création du socket pour le protocole TCP
   printf("Socket Créé\n");
 
-  signal(SIGINT, sigint_handler);
+  signal(SIGINT, sigint_handler); // Gestion du Ctrl+C
 
   struct sockaddr_in aS;
   aS.sin_family = AF_INET; // L'IP du serveur sera une IPv4
@@ -57,7 +57,7 @@ int main(int argc, char *argv[]) {
     // L'utilisateur 1 reçoit un message
     char* messageRecu = (char*)malloc(TAILLE_MESS);
     if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) == 0) {
-      break;
+      break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
     printf("\t/> %s", messageRecu);
   }

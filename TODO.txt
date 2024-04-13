@@ -4,4 +4,4 @@
 [x] verification argc au lancement client2
 [] commenter le code serveur
 [x] commenter le code client 1
-[] commenter le code client 2
+[x] commenter le code client 2
