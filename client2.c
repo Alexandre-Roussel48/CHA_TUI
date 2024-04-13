@@ -20,6 +20,12 @@ void sigint_handler(int signal) {
 
 int main(int argc, char *argv[]) {
 
+  // Vérification des paramètres
+  if(argc != 2){
+    printf("Erreur: format de commande: ./client1 <ServeurIP>");
+    exit(EXIT_FAILURE);
+  }
+  
   printf("\x1b[34m");
   dS = socket(PF_INET, SOCK_STREAM, 0);
   printf("Socket Créé\n");
