@@ -6,7 +6,7 @@
 #include <signal.h>
 
 #define TAILLE_MESS 140
-#define PORT 5000
+#define PORT 5001
 
 int dS;
 
