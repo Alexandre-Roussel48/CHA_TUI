@@ -6,10 +6,11 @@
 #include <signal.h>
 
 #define TAILLE_MESS 140
-#define PORT 5000
+#define PORT 5001
 
-int dS;
+int dS; // Initialisation du descripteur de la socket
 
+// fonction qui permet d'arrêter le programme si un ctrl+C est exécuté
 void sigint_handler(int signal) {
   shutdown(dS, 2);
   exit(EXIT_SUCCESS);
@@ -17,17 +18,22 @@ void sigint_handler(int signal) {
 
 int main(int argc, char *argv[]) {
   
-  printf("\x1b[32m");
+  printf("\x1b[32m");// Permet de mettre le texte en couleur
   printf("Début programme\n");
-
   dS = socket(PF_INET, SOCK_STREAM, 0);
   printf("Socket Créé\n");
-  signal(SIGINT, sigint_handler);
+
+  signal(SIGINT, sigint_handler); // Gestion du Ctrl+C
 
   struct sockaddr_in ad;
-  ad.sin_family = AF_INET;
-  ad.sin_addr.s_addr = INADDR_ANY ;
-  ad.sin_port = htons(PORT) ;
+  ad.sin_family = AF_INET; // L'IP du serveur sera une IPv4
+  ad.sin_addr.s_addr = INADDR_ANY; // Permet d'écouter toutes les adresses
+  ad.sin_port = htons(PORT); // Permet de spécifier le port sûr lequel se connecter sous forme binaire
+
+  // Permet de réutiliser un socket
+  int optval = 1;
+  setsockopt(dS, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval));
+  
   if (bind(dS, (struct sockaddr*)&ad, sizeof(ad)) < 0) {
     perror("Bind failed");
     exit(1);
@@ -36,7 +42,7 @@ int main(int argc, char *argv[]) {
 
   listen(dS, 2) ;
   printf("Mode écoute\n\n");
-  printf("\x1b[0m");
+  printf("\x1b[0m"); // Permet de changer la couleur du texte
 
   while(1) {
     socklen_t lg = sizeof(struct sockaddr_in) ;
@@ -53,7 +59,7 @@ int main(int argc, char *argv[]) {
 
     char* msg = calloc(TAILLE_MESS, sizeof(char));
     while (1) {
-      // Receive of Client 1 message
+      // Reçoie un message du client 1
       if (recv(dSC1, msg, TAILLE_MESS*sizeof(char), 0) > 0) {
         printf("Message reçu Client 1: %s\n", msg);
 
@@ -61,11 +67,11 @@ int main(int argc, char *argv[]) {
           break;
         }
 
-        // Send of Client 1 message to Client 2
+        // Transmission du message vers le client 2
         send(dSC2, msg, TAILLE_MESS*sizeof(char), 0);
       }
 
-      // Receive of Client 2 message
+      // Reçoie un message du client 2
       if (recv(dSC2, msg, TAILLE_MESS*sizeof(char), 0) > 0) {
         printf("Message reçu Client 2: %s\n", msg);
 
@@ -73,7 +79,7 @@ int main(int argc, char *argv[]) {
           break;
         }
 
-        // Send of Client 2 message to Client 1
+        // Transmission du message vers le client 1
         send(dSC1, msg, TAILLE_MESS*sizeof(char), 0);
       }
     }
