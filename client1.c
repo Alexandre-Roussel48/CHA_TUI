@@ -30,7 +30,10 @@ int main(int argc, char *argv[]) {
   inet_pton(AF_INET,argv[1],&(aS.sin_addr)) ;
   aS.sin_port = htons(PORT) ;
   socklen_t lgA = sizeof(struct sockaddr_in) ;
-  connect(dS, (struct sockaddr *) &aS, lgA) ;
+  if (connect(dS, (struct sockaddr *) &aS, lgA) < 0) {
+    perror("Connection failed");
+    exit(1);
+  }
   printf("Socket Connecté\n");
   printf("\x1b[32m\n");
 
