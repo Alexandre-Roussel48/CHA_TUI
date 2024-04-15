@@ -44,10 +44,13 @@ int main(int argc, char *argv[]) {
   printf("Socket Connecté\n");
 
   printf("\x1b[32m\n"); // Changement de couleur du texte pour la discussion
+
+  char* messageEnvoie = (char*)malloc(TAILLE_MESS);
+  char* messageRecu = (char*)malloc(TAILLE_MESS);
+
   while(1){
     printf("\t> ");
     // L'utilisateur 1 entre son message
-    char* messageEnvoie = (char*)malloc(TAILLE_MESS);
     fgets(messageEnvoie, TAILLE_MESS, stdin);
 
     // Envoie du message au serveur
@@ -55,7 +58,6 @@ int main(int argc, char *argv[]) {
     if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
 
     // L'utilisateur 1 reçoit un message
-    char* messageRecu = (char*)malloc(TAILLE_MESS);
     if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) == 0) {
       break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
@@ -63,6 +65,8 @@ int main(int argc, char *argv[]) {
   }
 
   shutdown(dS,2);
+  free(messageEnvoie);
+  free(messageRecu);
   printf("\x1b[34m");
   printf("Fin du chat\n");
   printf("\x1b[0m");
