@@ -66,9 +66,9 @@ int main(int argc, char *argv[]) {
     printf("\t/> %s", messageRecu);
   }
 
-  shutdown(dS,2);
   free(messageEnvoie);
   free(messageRecu);
+  shutdown(dS,2);
   printf("\x1b[34m");
   printf("Fin du chat\n");
   printf("\x1b[0m");

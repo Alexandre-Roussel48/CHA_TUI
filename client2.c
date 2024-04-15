@@ -67,6 +67,8 @@ int main(int argc, char *argv[]) {
     if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
   }
 
+  free(messageEnvoie);
+  free(messageRecu);
   shutdown(dS,2) ;
   printf("\x1b[34m");
   printf("Fin du chat\n");
