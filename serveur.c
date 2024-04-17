@@ -3,27 +3,16 @@
 #include <arpa/inet.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 
 #define TAILLE_MESS 140
 #define PORT 5001
-
-int dS; // Initialisation du descripteur de la socket
-
-// fonction qui permet d'arrêter le programme si un ctrl+C est exécuté
-void sigint_handler(int signal) {
-  shutdown(dS, 2);
-  exit(EXIT_SUCCESS);
-}
 
 int main(int argc, char *argv[]) {
   
   printf("\x1b[32m");// Permet de mettre le texte en couleur
   printf("Début programme\n");
-  dS = socket(PF_INET, SOCK_STREAM, 0);
+  int dS = socket(PF_INET, SOCK_STREAM, 0); // Initialisation du descripteur de la socket
   printf("Socket Créé\n");
-
-  signal(SIGINT, sigint_handler); // Gestion du Ctrl+C
 
   struct sockaddr_in ad;
   ad.sin_family = AF_INET; // L'IP du serveur sera une IPv4
