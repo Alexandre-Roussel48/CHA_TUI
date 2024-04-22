@@ -41,7 +41,7 @@ void* reception(){
   char* messageRecu = (char*)malloc(TAILLE_MESS);
   while(1){
     // L'utilisateur 1 reçoit un message
-    if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) == 0) {
+    if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) <= 0) {
       break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
     printf("\t/> %s", messageRecu);
@@ -82,6 +82,9 @@ pthread_t treception;
 
 pthread_create(&tsaisie, NULL, saisie, 0);
 pthread_create(&treception, NULL, reception, 0);
+
+pthread_join(tsaisie, 0);
+pthread_join(treception, 0);
 
 shutdown(dS,2);
 printf("\x1b[34m");
