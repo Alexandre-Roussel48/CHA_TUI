@@ -26,10 +26,10 @@ void *transmission(void *t) {
 
       // Transmission du message vers le receveur
       send(addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
-    } else {
-      free(msg);
-      pthread_exit(0);
     }
+    printf("deco autre client");
+    free(msg);
+    pthread_exit(0);
   }
   shutdown(addresses[0], 2);
   shutdown(addresses[1], 2);
