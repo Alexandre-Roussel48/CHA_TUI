@@ -24,7 +24,7 @@ void sigint_handler(int signal) {
 void* saisie(){
   char* messageEnvoie = (char*)malloc(TAILLE_MESS);
   while(1){
-    printf("\t> ");
+    puts("\t> ");
 
     // L'utilisateur 1 entre son message
     fgets(messageEnvoie, TAILLE_MESS, stdin);
@@ -44,7 +44,7 @@ void* reception(){
     if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) <= 0) {
       break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
-    printf("\t/> %s", messageRecu);
+    puts("\t/> %s", messageRecu);
   }
   free(messageRecu);
   pthread_exit(0);
