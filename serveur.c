@@ -9,11 +9,11 @@
 #define PORT 5001
 #define NB_CLIENTS 2
 
-void *addresses[NB_CLIENTS] = {NULL, NULL};
+int addresses[NB_CLIENTS];
 
 int empty_client() {
   for (int i=0; i<NB_CLIENTS; i++) {
-    if (addresses[i] == NULL) {
+    if (addresses[i] == -1) {
       return i;
     }
   }
@@ -26,7 +26,7 @@ void *transmission(void *t) {
   int receiver = (i+1)%2;
   while(1) {
     // Reçoie un message de l'envoyeur
-    if (recv((long)addresses[i], msg, TAILLE_MESS*sizeof(char), 0) > 0) {
+    if (recv(addresses[i], msg, TAILLE_MESS*sizeof(char), 0) > 0) {
       printf("Message reçu Client %d: %s\n",i, msg);
 
       if (strcmp(msg, "fin\n") == 0) {
@@ -34,20 +34,24 @@ void *transmission(void *t) {
       }
 
       // Transmission du message vers le receveur
-      if (addresses[receiver] != NULL) {
-        send((long)addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
+      if (addresses[receiver] != -1) {
+        send(addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
       }
     }
   }
   free(msg);
   shutdown((long)addresses[i], 2);
-  addresses[i] = NULL;
+  addresses[i] = -1;
   printf("Client %d disconnected\n", i);
   pthread_exit(0);
 }
 
 int main(int argc, char *argv[]) {
-  
+  // Initialisation du tableau d'adresse
+  for(int i=0; i<NB_CLIENTS; i++){
+    addresses[i] = -1;
+  }
+
   printf("\x1b[32m");// Permet de mettre le texte en couleur
   printf("Début programme\n");
   int dS = socket(PF_INET, SOCK_STREAM, 0); // Initialisation du descripteur de la socket
@@ -83,7 +87,7 @@ int main(int argc, char *argv[]) {
 
       index = empty_client();
 
-      addresses[index] = (void *)(long)accept(dS, (struct sockaddr*) &aC,&lg);
+      addresses[index] = accept(dS, (struct sockaddr*) &aC,&lg);
       printf("Client %d Connecté\n", index);
       pthread_create(&threads[index], 0, transmission, (void*)(long)index);
     }
