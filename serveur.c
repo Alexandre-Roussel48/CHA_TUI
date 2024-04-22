@@ -7,8 +7,18 @@
 
 #define TAILLE_MESS 140
 #define PORT 5001
+#define NB_CLIENTS 2
 
-int addresses[2];
+void *addresses[NB_CLIENTS] = {NULL, NULL};
+
+int empty_client() {
+  for (int i=0; i<NB_CLIENTS; i++) {
+    if (addresses[i] == NULL) {
+      return i;
+    }
+  }
+  return -1;
+}
 
 void *transmission(void *t) {
   char* msg = calloc(TAILLE_MESS, sizeof(char));
@@ -16,23 +26,23 @@ void *transmission(void *t) {
   int receiver = (i+1)%2;
   while(1) {
     // Reçoie un message de l'envoyeur
-    if (recv(addresses[i], msg, TAILLE_MESS*sizeof(char), 0) > 0) {
-      printf("Message reçu Client %d: %s\n",(i+1), msg);
+    if (recv((long)addresses[i], msg, TAILLE_MESS*sizeof(char), 0) > 0) {
+      printf("Message reçu Client %d: %s\n",i, msg);
 
       if (strcmp(msg, "fin\n") == 0) {
-        free(msg);
         break;
       }
 
       // Transmission du message vers le receveur
-      send(addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
+      if (addresses[receiver] != NULL) {
+        send((long)addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
+      }
     }
-    printf("deco autre client");
-    free(msg);
-    pthread_exit(0);
   }
-  shutdown(addresses[0], 2);
-  shutdown(addresses[1], 2);
+  free(msg);
+  shutdown((long)addresses[i], 2);
+  addresses[i] = NULL;
+  printf("Client %d disconnected\n", i);
   pthread_exit(0);
 }
 
@@ -65,21 +75,17 @@ int main(int argc, char *argv[]) {
   pthread_t threads[2];
 
   while(1) {
-    socklen_t lg = sizeof(struct sockaddr_in) ;
+    int index;
+    while(empty_client() > -1) {
+      printf("\x1b[34m");
+      socklen_t lg = sizeof(struct sockaddr_in) ;
+      struct sockaddr_in aC;
 
-    struct sockaddr_in aC1 ;
-    addresses[0] = accept(dS, (struct sockaddr*) &aC1,&lg) ;
-    printf("\x1b[34m");
-    printf("Client 1 Connecté\n");
-    pthread_create(&threads[0], 0, transmission, (void*)0);
+      index = empty_client();
 
-    struct sockaddr_in aC2 ;
-    addresses[1] = accept(dS, (struct sockaddr*) &aC2,&lg) ;
-    printf("Client 2 Connecté\n");
-    printf("\x1b[0m");
-    pthread_create(&threads[1], 0, transmission, (void*)1);
-
-    pthread_join(threads[0], 0);
-    pthread_join(threads[1], 0);
+      addresses[index] = (void *)(long)accept(dS, (struct sockaddr*) &aC,&lg);
+      printf("Client %d Connecté\n", index);
+      pthread_create(&threads[index], 0, transmission, (void*)(long)index);
+    }
   }
 }
