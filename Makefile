@@ -1,16 +1,13 @@
 CC = gcc
 CFLAGS = -Wall
 
-all: client1 client2 serveur
+all: client serveur
 
-client1: client1.c
-	$(CC) $(CFLAGS) $^ -o $@
-
-client2: client2.c
+client: client.c
 	$(CC) $(CFLAGS) $^ -o $@
 
 serveur: serveur.c
 	$(CC) $(CFLAGS) $^ -o $@
 
 clean:
-	rm -f client1 client2 serveur
+	rm -f client serveur
