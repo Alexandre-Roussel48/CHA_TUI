@@ -5,11 +5,10 @@
 #include <string.h>
 #include <pthread.h>
 
-#define TAILLE_MESS 140
 #define PORT 5001
 #define NB_CLIENTS 2
 
-int addresses[NB_CLIENTS];
+int addresses[NB_CLIENTS] = {-1,-1};
 
 int empty_client() {
   for (int i=0; i<NB_CLIENTS; i++) {
@@ -21,25 +20,31 @@ int empty_client() {
 }
 
 void *transmission(void *t) {
-  char* msg = calloc(TAILLE_MESS, sizeof(char));
   int i = (long)t;
   int receiver = (i+1)%2;
   while(1) {
-    // Reçoie un message de l'envoyeur
-    if (recv(addresses[i], msg, TAILLE_MESS*sizeof(char), 0) > 0) {
-      printf("Message reçu Client %d: %s\n",i, msg);
+    // Reçoie de la taille du message
+    int messageLength;
+    if (recv(addresses[i], &messageLength, sizeof(int), 0) > 0) {
+      printf("Taille : %d\n", messageLength);
+      char* msg = calloc(messageLength, sizeof(char));
+      // Reçoie un message de l'envoyeur
+      if (recv(addresses[i], msg, messageLength*sizeof(char), 0) > 0) {
+        printf("Message reçu Client %d: %s\n",i, msg);
 
-      if (strcmp(msg, "fin\n") == 0) {
-        break;
-      }
+        if (strcmp(msg, "fin\n") == 0) {
+          break;
+        }
 
-      // Transmission du message vers le receveur
-      if (addresses[receiver] != -1) {
-        send(addresses[receiver], msg, TAILLE_MESS*sizeof(char), 0);
+        // Transmission du message vers le receveur
+        if (addresses[receiver] != -1) {
+          send(addresses[receiver], &messageLength, sizeof(int), 0);
+          send(addresses[receiver], msg, messageLength*sizeof(char), 0);
+        }
       }
+      free(msg);
     }
   }
-  free(msg);
   shutdown((long)addresses[i], 2);
   addresses[i] = -1;
   printf("Client %d disconnected\n", i);
@@ -79,17 +84,17 @@ int main(int argc, char *argv[]) {
   pthread_t threads[2];
 
   while(1) {
-    int index;
-    while(empty_client() > -1) {
+    int index = empty_client();
+    while(index > -1) {
       printf("\x1b[34m");
       socklen_t lg = sizeof(struct sockaddr_in) ;
       struct sockaddr_in aC;
 
-      index = empty_client();
-
       addresses[index] = accept(dS, (struct sockaddr*) &aC,&lg);
       printf("Client %d Connecté\n", index);
       pthread_create(&threads[index], 0, transmission, (void*)(long)index);
+
+      index = empty_client();
     }
   }
 }

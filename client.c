@@ -6,7 +6,7 @@
 #include <signal.h>
 #include <pthread.h>
 
-#define TAILLE_MESS 140
+#define TAILLE_MESS 256
 #define PORT 5001
 
 int dS; // Initialisation du descripteur de la socket
@@ -16,7 +16,9 @@ void sigint_handler(int signal) {
   // on force l'envoie du message fin pour terminer le programme
   char msg[140];
   strcpy(msg, "fin\n");
-  send(dS, msg, TAILLE_MESS*sizeof(char), 0);
+  int messageLength = strlen(msg);
+  send(dS, &messageLength, sizeof(int), 0);
+  send(dS, msg, messageLength*sizeof(char), 0);
   shutdown(dS, 2);
   exit(EXIT_SUCCESS);
 }
@@ -33,8 +35,11 @@ void* saisie(){
     // L'utilisateur 1 entre son message
     fgets(messageEnvoie, TAILLE_MESS, stdin);
 
+    // Envoie de la taille du message au serveur
+    int messageLength = strlen(messageEnvoie);
+    send(dS, &messageLength, sizeof(int), 0);
     // Envoie du message au serveur
-    send(dS, messageEnvoie, TAILLE_MESS*sizeof(char), 0); 
+    send(dS, messageEnvoie, messageLength*sizeof(char), 0); 
     if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
   }
   free(messageEnvoie);
@@ -42,21 +47,25 @@ void* saisie(){
 }
 
 void* reception(){
-  char* messageRecu = (char*)malloc(TAILLE_MESS);
   while(1){
-    // L'utilisateur 1 reçoit un message
-    if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) > 0) {
-      printf("\033[s");
-      printf("\033[1L");
-      printf("\t/> %s", messageRecu);
-      printf("\033[u");
-      printf("\033[1B");
-      fflush(stdout);
+    // L'utilisateur 1 recoit la taille du message
+    int messageLength;
+    if (recv(dS, &messageLength, sizeof(int), 0) > 0) {
+      char* messageRecu = (char*)malloc(messageLength);
+      // L'utilisateur 1 reçoit un message
+      if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) > 0) {
+        printf("\033[s");
+        printf("\033[1L");
+        printf("\t/> %s", messageRecu);
+        printf("\033[u");
+        printf("\033[1B");
+        fflush(stdout);
+      }
+      free(messageRecu);
     } else {
       break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
     }
   }
-  free(messageRecu);
   pthread_exit(0);
 }
 
