@@ -57,7 +57,7 @@ void* saisie(){
     fgets(messageEnvoie, TAILLE_MESS, stdin);
 
     // Envoie de la taille du message au serveur
-    int messageLength = strlen(messageEnvoie);
+    int messageLength = strlen(messageEnvoie)+1;
     send(dS, &messageLength, sizeof(int), 0);
 
     // Envoie du message au serveur
@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 
   // Vérification des paramètres
   if(argc != 2){
-    printf("Erreur: format de commande: ./client1 <ServeurIP>");
+    printf("Erreur: format de commande: ./client <ServeurIP>");
     exit(EXIT_FAILURE);
   }
 
