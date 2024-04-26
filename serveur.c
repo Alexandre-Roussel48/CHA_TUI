@@ -5,6 +5,7 @@
 int dS;
 int NB_CLIENTS;
 User *users;
+pthread_mutex_t mutex_lock;
 
 void init() {
   for(int i=0; i<NB_CLIENTS; i++){
@@ -78,7 +79,9 @@ void *transmission(void *t) {
     }
   }
   shutdown((long)users[user_index].ad, 2);
+  pthread_mutex_lock(&mutex_lock);
   users[user_index].ad = -1;
+  pthread_mutex_unlock(&mutex_lock);
   printf("Client %d disconnected\n", user_index);
   pthread_exit(0);
 }
@@ -103,7 +106,7 @@ void connect_users() {
 int main(int argc, char *argv[]) {
   // Vérification des paramètres
   if(argc != 2){
-    printf("Erreur: format de commande: ./serveur <NB_CLIENTS>");
+    printf("Erreur: format de commande: ./serveur <NB_CLIENTS>\n");
     exit(EXIT_FAILURE);
   }
   NB_CLIENTS = atoi(argv[1]);
