@@ -1,10 +1,10 @@
 #include "serveur.h"
 
 #define PORT 5001
-#define NB_CLIENTS 2
 
 int dS;
-User users[NB_CLIENTS];
+int NB_CLIENTS;
+User *users;
 
 void init() {
   for(int i=0; i<NB_CLIENTS; i++){
@@ -44,35 +44,42 @@ int empty_client() {
   return -1;
 }
 
+void broadcast(int index, int messageLength, char* msg) {
+  for (int i=0; i < NB_CLIENTS; i++) {
+    if (i!=index && users[i].ad != -1) {
+      send(users[i].ad, &messageLength, sizeof(int), 0);
+      send(users[i].ad, msg, messageLength*sizeof(char), 0);
+    }
+  }
+}
+
 void *transmission(void *t) {
-  int i = (long)t;
-  int receiver = (i+1)%2;
+  int user_index = (long)t;
   while(1) {
     // Reçoie de la taille du message
     int messageLength;
-    if (recv(users[i].ad, &messageLength, sizeof(int), 0) > 0) {
+    if (recv(users[user_index].ad, &messageLength, sizeof(int), 0) > 0) {
       printf("Taille : %d\n", messageLength);
       char* msg = calloc(messageLength, sizeof(char));
       // Reçoie un message de l'envoyeur
-      if (recv(users[i].ad, msg, messageLength*sizeof(char), 0) > 0) {
-        printf("Message reçu Client %d: %s\n",i, msg);
+      if (recv(users[user_index].ad, msg, messageLength*sizeof(char), 0) > 0) {
+        printf("Message reçu Client %d: %s\n",user_index, msg);
 
         if (strcmp(msg, "fin\n") == 0) {
           break;
         }
 
         // Transmission du message vers le receveur
-        if (users[receiver].ad != -1) {
-          send(users[receiver].ad, &messageLength, sizeof(int), 0);
-          send(users[receiver].ad, msg, messageLength*sizeof(char), 0);
-        }
+        broadcast(user_index, messageLength, msg);
       }
       free(msg);
+    } else {
+      break;
     }
   }
-  shutdown((long)users[i].ad, 2);
-  users[i].ad = -1;
-  printf("Client %d disconnected\n", i);
+  shutdown((long)users[user_index].ad, 2);
+  users[user_index].ad = -1;
+  printf("Client %d disconnected\n", user_index);
   pthread_exit(0);
 }
 
@@ -94,6 +101,14 @@ void connect_users() {
 }
 
 int main(int argc, char *argv[]) {
+  // Vérification des paramètres
+  if(argc != 2){
+    printf("Erreur: format de commande: ./serveur <NB_CLIENTS>");
+    exit(EXIT_FAILURE);
+  }
+  NB_CLIENTS = atoi(argv[1]);
+  users = (User *)malloc(NB_CLIENTS * sizeof(User));
+
   init();
   connect_users();
 }
