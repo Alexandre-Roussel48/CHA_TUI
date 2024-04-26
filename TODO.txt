@@ -11,13 +11,19 @@ Sprint 1
 
     Version 2
 
-        [] envoie d'un message client vers tous les autres clients
+        [x] envoie d'un message client vers tous les autres clients
 
     Options
 
         [x]Optimiser le protocole d’envoi de chaine de caractère : envoie d’abord de la taille (l’information de la taille du message est d’une taille fixe) puis envoi du contenu adapter à la taille du message (allocation dynamique et envoi et réception seulement des octets significatifs)
         [x]Gestion d’erreur (valeur de retour, ex : bind,rcv…) sur les différentes fonctions systèmes utilisées 
         [x]Gestion de la déconnexion propre des clients, => mise à jour des informations du tableau client
-        []Gestion de la déconnexion forcée des clients ou du serveur, si l’un d’un crashe les autres s'arrêtent proprement (= détection de la fin de connexion sur les sockets)
-        []Sécurisation du tableau en mémoire partagée (mutex)
+        [x]Gestion de la déconnexion forcée des clients ou du serveur, si l’un d’un crashe les autres s'arrêtent proprement (= détection de la fin de connexion sur les sockets)
+            message au clients ctrl+c
+        [x]Sécurisation du tableau en mémoire partagée (mutex)
         []Définition d’un protocole pour les commandes particulières envoyées en messages depuis le client, comme le fin précédemment, d’autres von ( exemple @... sur discord )
+            []!membres
+            []/shrug
+            []/tableflip
+            []/unflip
+            
