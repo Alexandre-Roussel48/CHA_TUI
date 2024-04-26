@@ -43,18 +43,48 @@ void init(char* address) {
   printf("Socket Connecté\n");
 }
 
+int find_first_slash(char *str) {
+    if (str == NULL)
+        return -1;
+
+    int index = 0;
+    while (*str != '\0') {
+        if (*str == '/') {
+            return index;
+        }
+        str++;
+        index++;
+    }
+
+    // If '/' is not found, return -1
+    return -1;
+}
+
 /**
  * permet au client de saisir un message
  * est utilisé dans un thread
  * @return {void*}
 */
 void* saisie(){
-  char* messageEnvoie = (char*)malloc(TAILLE_MESS);
   while(1){
+    char* messageEnvoie = (char*)malloc(TAILLE_MESS);
     printf("\t> ");
 
     // L'utilisateur 1 entre son message
     fgets(messageEnvoie, TAILLE_MESS, stdin);
+
+    int command_index = find_first_slash(messageEnvoie);
+    if (command_index != -1) {
+      if(strcmp(messageEnvoie+command_index, "/tableflip\n")==0) {
+        strcpy(messageEnvoie+command_index, "(╯°□ °)╯︵ ┻━┻\n");
+      }
+      else if (strcmp(messageEnvoie+command_index, "/unflip\n")==0) {
+        strcpy(messageEnvoie+command_index, "┬─┬ノ( º _ ºノ)\n");
+      }
+      else if (strcmp(messageEnvoie+command_index, "/shrug\n")==0) {
+        strcpy(messageEnvoie+command_index, "¯\\_(ツ)_/¯\n");
+      }
+    }
 
     // Envoie de la taille du message au serveur
     int messageLength = strlen(messageEnvoie)+1;
@@ -63,8 +93,8 @@ void* saisie(){
     // Envoie du message au serveur
     send(dS, messageEnvoie, messageLength*sizeof(char), 0); 
     if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
+    free(messageEnvoie);
   }
-  free(messageEnvoie);
   pthread_exit(0);
 }
 
@@ -100,7 +130,7 @@ int main(int argc, char *argv[]) {
 
   // Vérification des paramètres
   if(argc != 2){
-    printf("Erreur: format de commande: ./client <ServeurIP>");
+    printf("Erreur: format de commande: ./client <ServeurIP>\n");
     exit(EXIT_FAILURE);
   }
 

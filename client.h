@@ -14,6 +14,7 @@
 
 void sigint_handler(int signal);
 void init(char* address);
+int find_first_slash(char *str);
 void* saisie();
 void* reception();
 
