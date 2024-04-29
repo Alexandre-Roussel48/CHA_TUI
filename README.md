@@ -21,3 +21,4 @@ make
 /unflip     envoie ┬─┬ノ( º _ ºノ)
 
 ### Envoie de message à des personnes
+@[username] [message] envoie un message à une personne en particulier
