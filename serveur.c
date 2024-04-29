@@ -3,8 +3,8 @@
 #define PORT 5001
 
 int dS;
-int NB_CLIENTS;
-User *users;
+int NB_CLIENTS;   // Definie le nombre de clients
+User *users;      // tableau d'utilisateurs
 pthread_mutex_t mutex_lock;
 
 void init() {
@@ -31,11 +31,16 @@ void init() {
   }
   printf("Socket Nommé\n");
 
+
   listen(dS, 2) ;
   printf("Mode écoute\n\n");
   printf("\x1b[0m"); // Permet de changer la couleur du texte
 }
 
+/**
+ * Regarde la premier place libre dans le tableau de Users
+ * @return {int} index de la place libre dans le tableau
+*/
 int empty_client() {
   for (int i=0; i<NB_CLIENTS; i++) {
     if (users[i].ad == -1) {
@@ -45,6 +50,13 @@ int empty_client() {
   return -1;
 }
 
+/**
+ * Envoie le message et la taille du message à tous les utilisateurs
+ * @params{int, int, char*}
+ *    - index de l'utilisateur dans le tableau (int)
+ *    - taille du message (int)
+ *    - message (char*)
+*/
 void broadcast(int index, int messageLength, char* msg) {
   for (int i=0; i < NB_CLIENTS; i++) {
     if (i!=index && users[i].ad != -1) {
@@ -54,7 +66,11 @@ void broadcast(int index, int messageLength, char* msg) {
   }
 }
 
-void *transmission(void *t) {
+/**
+ * transmet un message recu vers un client
+ * @param{void* t} correspond à l'index du client
+*/
+void* transmission(void *t) {
   int user_index = (long)t;
   while(1) {
     // Reçoie de la taille du message
@@ -86,19 +102,85 @@ void *transmission(void *t) {
   pthread_exit(0);
 }
 
+/**
+ * permet de recevoir la taille d'un message avec gestion d'erreur
+ * @return {int} renvoie -1 si il y a une erreur lors de la reception
+ *               sinon renvoie la taille du message
+*/
+int recv_message_length(int adresseClient){
+  int messageLength;
+  if(recv(adresseClient, &messageLength, sizeof(int), 0) <= 0){
+    return -1;
+  }
+  return messageLength;
+}
+
+/**
+ * permet de recevoir un message
+ * @params {int adresseClient, int messageLength}
+ * @return {MessageResult*} qui contient un errorCode et le message
+*/
+MessageResult* recv_message(int adresseClient, int messageLength){
+  MessageResult* message = malloc(sizeof(MessageResult));
+  if(message == NULL){
+    message->errorCode = -1;
+    message->message = "Erreur d'allocation memoire du type MessageResult"; // Pourquoi pas besoin d'allocation
+    return message;
+  }
+
+  message->message = malloc(messageLength*sizeof(char));
+
+  if (recv(adresseClient, message->message, messageLength*sizeof(char), 0) <= 0){
+    message->errorCode = -1;
+    message->message = "Erreur lors de la recption du message";
+    return message;
+  }
+
+  message->errorCode = 1;
+  return message;
+}
+
+/**
+ * permet de connecter un client en lui demandant son username
+*/
 void connect_users() {
   while(1) {
-    int index = empty_client();
-    while(index > -1) {
+    int index = empty_client(); // recupere l'index du nouveau client dans le tableau de clients
+
+    while(index > -1) { // ?
+
       printf("\x1b[34m");
+
       socklen_t lg = sizeof(struct sockaddr_in) ;
       struct sockaddr_in aC;
+      users[index].ad = accept(dS, (struct sockaddr*) &aC,&lg); // On connecte la connection avec le client et on stock l'adresse
 
-      users[index].ad = accept(dS, (struct sockaddr*) &aC,&lg);
-      printf("Client %d Connecté\n", index);
+      int messageLength;
+      messageLength = recv_message_length(users[index].ad);
+      if(messageLength == -1){
+        perror("erreur taille message");
+        exit(EXIT_FAILURE);
+      }
+      printf("Taille : %d\n", messageLength);
+
+      MessageResult* messageResult = recv_message(users[index].ad, messageLength);
+      if(messageResult->errorCode == -1){
+        printf("%s", messageResult->message);
+        exit(EXIT_FAILURE);
+      }
+      char* message = messageResult->message;
+      printf("Message reçu Client %d: %s\n",index, message);
+
+      users[index].username = message;
+
+      printf("%s Connecté\n", users[index].username);
+
       pthread_create(&users[index].thread, 0, transmission, (void*)(long)index);
 
       index = empty_client();
+
+      free(messageResult->message);
+      free(messageResult);
     }
   }
 }

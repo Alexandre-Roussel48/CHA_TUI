@@ -10,8 +10,12 @@ struct User {
 	char* username;
 	pthread_t thread;
 };
-
 typedef struct User User;
+
+typedef struct {
+    int errorCode;
+    char* message;
+} MessageResult;
 
 void init();
 void connect_users();

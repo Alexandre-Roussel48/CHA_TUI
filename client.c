@@ -19,6 +19,27 @@ void sigint_handler(int signal) {
 }
 
 /**
+ * fonction qui permet d'envoyer : taille message + message
+*/
+void send_message(char* message){
+  int messageLength = strlen(message)+1;
+  send(dS, &messageLength, sizeof(int), 0);
+  send(dS, message, messageLength*sizeof(char), 0);
+}
+
+/**
+ * permet de demander le username du client
+*/
+void ask_username() {
+  char* messageEnvoie = (char*)malloc(TAILLE_MESS);
+  printf("\t> Veuillez entrer votre Username :\n");
+  printf("\t> ");
+  // L'utilisateur entre son username
+  fgets(messageEnvoie, TAILLE_MESS, stdin);
+  send_message(messageEnvoie);
+}
+
+/**
  * permet la création de socket et la connexion au serveur
  * @params {char*} correspond à l'address du serveur
 */
@@ -41,8 +62,13 @@ void init(char* address) {
     exit(EXIT_FAILURE);
   }
   printf("Socket Connecté\n");
+
+  ask_username();
 }
 
+/**
+ * gestion des commandes d'affichage
+*/
 int find_first_slash(char *str) {
     if (str == NULL)
         return -1;
@@ -74,6 +100,7 @@ void* saisie(){
     fgets(messageEnvoie, TAILLE_MESS, stdin);
 
     int command_index = find_first_slash(messageEnvoie);
+
     if (command_index != -1) {
       if(strcmp(messageEnvoie+command_index, "/tableflip\n")==0) {
         strcpy(messageEnvoie+command_index, "(╯°□ °)╯︵ ┻━┻\n");
@@ -86,12 +113,10 @@ void* saisie(){
       }
     }
 
-    // Envoie de la taille du message au serveur
-    int messageLength = strlen(messageEnvoie)+1;
-    send(dS, &messageLength, sizeof(int), 0);
+    // Envoie de la taille du message et du message au serveur
+    send_message(messageEnvoie);
 
-    // Envoie du message au serveur
-    send(dS, messageEnvoie, messageLength*sizeof(char), 0); 
+    // condition d'arrêt
     if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
     free(messageEnvoie);
   }
