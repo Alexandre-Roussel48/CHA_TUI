@@ -1,13 +1,14 @@
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -o
+SRCSSERV = srcServeur/*.c
 
 all: client serveur
 
 client: client.c
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) -Wall $^ -o $@
 
 serveur: serveur.c
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(CFLAGS) $@ $^ $(SRCSSERV)
 
 clean:
 	rm -f client serveur
