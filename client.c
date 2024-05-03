@@ -19,24 +19,130 @@ void sigint_handler(int signal) {
 }
 
 /**
+ * gestion des commandes d'affichage
+*/
+int find_first_slash(char *str) {
+    if (str == NULL)
+        return -1;
+
+    int index = 0;
+    while (*str != '\0') {
+        if (*str == '/') {
+            return index;
+        }
+        str++;
+        index++;
+    }
+
+    // If '/' is not found, return -1
+    return -1;
+}
+
+/**
  * fonction qui permet d'envoyer : taille message + message
 */
-void send_message(char* message){
+int send_message(char* message) {
   int messageLength = strlen(message)+1;
-  send(dS, &messageLength, sizeof(int), 0);
-  send(dS, message, messageLength*sizeof(char), 0);
+  if (send(dS, &messageLength, sizeof(int), 0) < 0) {
+    perror("messageLength send failed\n");
+    return -1;
+  }
+  if (send(dS, message, messageLength*sizeof(char), 0) < 0) {
+    perror("message send failed\n");
+    return -1;
+  }
+  return 1;
+}
+
+int recv_message() {
+  int messageLength;
+  int res = recv(dS, &messageLength, sizeof(int), 0); // reception taille message
+  if (res < 0) { // gestion erreur
+    perror("messageLength receive failed\n");
+    return -1;
+  } else if (res == 0) {
+    return 0;
+  }
+  char* messageRecu = (char*)malloc(messageLength);
+  res = recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0);
+  if (res < 0) {
+    free(messageRecu);
+    perror("message receive failed\n");
+    return -1;
+  } else if (res == 0) {
+    free(messageRecu);
+    return 0;
+  }
+  printf("\033[s\033[1L\t/> %s\033[u\033[1B", messageRecu); // affichage plus joli
+  fflush(stdout); // force la maj de la sortie standard
+  free(messageRecu);
+  return 1;
+}
+
+/**
+ * permet au client de saisir un message
+ * est utilisé dans un thread
+ * @return {void*}
+*/
+void* saisie(){
+  int res = 1;
+  while(res == 1){
+    char* messageEnvoie = (char*)malloc(TAILLE_MESS);
+    printf("\t> ");
+
+    // L'utilisateur 1 entre son message
+    fgets(messageEnvoie, TAILLE_MESS, stdin);
+
+    /*int command_index = find_first_slash(messageEnvoie);
+
+    if (command_index != -1) {
+      if(strcmp(messageEnvoie+command_index, "/tableflip\n")==0) {
+        strcpy(messageEnvoie+command_index, "(╯°□ °)╯︵ ┻━┻\n");
+      }
+      else if (strcmp(messageEnvoie+command_index, "/unflip\n")==0) {
+        strcpy(messageEnvoie+command_index, "┬─┬ノ( º _ ºノ)\n");
+      }
+      else if (strcmp(messageEnvoie+command_index, "/shrug\n")==0) {
+        strcpy(messageEnvoie+command_index, "¯\\_(ツ)_/¯\n");
+      }
+    }*/
+
+    // Envoie de la taille du message et du message au serveur
+    res = send_message(messageEnvoie);
+
+    free(messageEnvoie);
+  }
+  pthread_exit(0);
+}
+
+/**
+ * permet au client de lire un message recu
+ * est utilisé dans un thread
+ * @return {void*}
+*/
+void* reception(){
+  int res = 1;
+  while(res == 1){
+    // L'utilisateur 1 recoit la taille du message
+    res = recv_message();
+  }
+  pthread_exit(0);
 }
 
 /**
  * permet de demander le username du client
 */
-void ask_username() {
+int ask_username() {
   char* messageEnvoie = (char*)malloc(TAILLE_MESS);
   printf("\t> Veuillez entrer votre Username :\n");
   printf("\t> ");
   // L'utilisateur entre son username
   fgets(messageEnvoie, TAILLE_MESS, stdin);
-  send_message(messageEnvoie);
+  if (send_message(messageEnvoie) < 0) {
+    perror("Username binding failed\n");
+    return -1;
+  }
+  return 1;
 }
 
 /**
@@ -62,93 +168,6 @@ void init(char* address) {
     exit(EXIT_FAILURE);
   }
   printf("Socket Connecté\n");
-
-  ask_username();
-}
-
-/**
- * gestion des commandes d'affichage
-*/
-int find_first_slash(char *str) {
-    if (str == NULL)
-        return -1;
-
-    int index = 0;
-    while (*str != '\0') {
-        if (*str == '/') {
-            return index;
-        }
-        str++;
-        index++;
-    }
-
-    // If '/' is not found, return -1
-    return -1;
-}
-
-/**
- * permet au client de saisir un message
- * est utilisé dans un thread
- * @return {void*}
-*/
-void* saisie(){
-  while(1){
-    char* messageEnvoie = (char*)malloc(TAILLE_MESS);
-    printf("\t> ");
-
-    // L'utilisateur 1 entre son message
-    fgets(messageEnvoie, TAILLE_MESS, stdin);
-
-    int command_index = find_first_slash(messageEnvoie);
-
-    if (command_index != -1) {
-      if(strcmp(messageEnvoie+command_index, "/tableflip\n")==0) {
-        strcpy(messageEnvoie+command_index, "(╯°□ °)╯︵ ┻━┻\n");
-      }
-      else if (strcmp(messageEnvoie+command_index, "/unflip\n")==0) {
-        strcpy(messageEnvoie+command_index, "┬─┬ノ( º _ ºノ)\n");
-      }
-      else if (strcmp(messageEnvoie+command_index, "/shrug\n")==0) {
-        strcpy(messageEnvoie+command_index, "¯\\_(ツ)_/¯\n");
-      }
-    }
-
-    // Envoie de la taille du message et du message au serveur
-    send_message(messageEnvoie);
-
-    // condition d'arrêt
-    if(strcmp(messageEnvoie, "fin\n") == 0){break;} // Si le message est "fin" on arrete le programme
-    free(messageEnvoie);
-  }
-  pthread_exit(0);
-}
-
-/**
- * permet au client de lire un message recu
- * est utilisé dans un thread
- * @return {void*}
-*/
-void* reception(){
-  while(1){
-    // L'utilisateur 1 recoit la taille du message
-    int messageLength;
-    if (recv(dS, &messageLength, sizeof(int), 0) > 0) {
-      char* messageRecu = (char*)malloc(messageLength);
-      // L'utilisateur 1 reçoit un message
-      if (recv(dS, messageRecu, TAILLE_MESS*sizeof(char), 0) > 0) {
-        printf("\033[s"); // permet un affichage plus joli
-        printf("\033[1L");
-        printf("\t/> %s", messageRecu);
-        printf("\033[u");
-        printf("\033[1B");
-        fflush(stdout); // force la maj de la sortie standard
-      }
-      free(messageRecu);
-    } else {
-      break; // Permet de ne pas continuer la boucle si l'on ne reçoit plus aucun messages
-    }
-  }
-  pthread_exit(0);
 }
 
 int main(int argc, char *argv[]) {
@@ -160,6 +179,7 @@ int main(int argc, char *argv[]) {
   }
 
   init(argv[1]);
+  if (ask_username() < 0) {goto shutdown;}
 
   printf("\x1b[32m\n"); // Changement de couleur du texte pour la discussion
 
@@ -172,6 +192,7 @@ int main(int argc, char *argv[]) {
   pthread_join(tsaisie, 0);
   pthread_join(treception, 0);
 
+  shutdown:
   shutdown(dS,2);
   printf("\x1b[34m");
   printf("Fin du chat\n");

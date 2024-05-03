@@ -50,6 +50,18 @@ int empty_client() {
   return -1;
 }
 
+int send_message(int index, char* message, int messageLength) {
+  if (send(users[index].ad, &messageLength, sizeof(int), 0) < 0) {
+    perror("messageLength send failed\n");
+    return -1;
+  }
+  if (send(users[index].ad, message, messageLength*sizeof(char), 0) < 0) {
+    perror("message send failed\n");
+    return -1;
+  }
+  return 1;
+}
+
 /**
  * Envoie le message et la taille du message à tous les utilisateurs
  * @params{int, int, char*}
@@ -57,13 +69,46 @@ int empty_client() {
  *    - taille du message (int)
  *    - message (char*)
 */
-void broadcast(int index, int messageLength, char* msg) {
+void broadcast(int index, char* msg, int messageLength) {
   for (int i=0; i < NB_CLIENTS; i++) {
     if (i!=index && users[i].ad != -1) {
-      send(users[i].ad, &messageLength, sizeof(int), 0);
-      send(users[i].ad, msg, messageLength*sizeof(char), 0);
+      send_message(i,msg,messageLength);
     }
   }
+}
+
+int recv_message_length(int index) {
+  int messageLength;
+  int res = recv(users[index].ad, &messageLength, sizeof(int), 0); // reception taille message
+  if (res < 0) { // gestion erreur
+    perror("messageLength receive failed\n");
+    return -1;
+  } else if (res == 0) {
+    return 0;
+  }
+  printf("Taille : %d\n", messageLength);
+  return messageLength;
+}
+
+int recv_message(int index, int messageLength, char** message) {
+  char* messageRecu = (char*)malloc(messageLength);
+  int res = recv(users[index].ad, messageRecu, messageLength*sizeof(char), 0);
+  if (res < 0) {
+    free(messageRecu);
+    perror("message receive failed\n");
+    return -1;
+  } else if (res == 0) {
+    free(messageRecu);
+    return 0;
+  }
+  if (users[index].username==NULL) {
+    users[index].username = messageRecu;
+    printf("%s Connecté\n", users[index].username);
+    return 2;
+  }
+  printf("Message reçu Client %d: %s\n",index, messageRecu);
+  *message = messageRecu;
+  return 1;
 }
 
 /**
@@ -73,27 +118,23 @@ void broadcast(int index, int messageLength, char* msg) {
 void* transmission(void *t) {
   int user_index = (long)t;
   while(1) {
-    // Reçoie de la taille du message
-    int messageLength;
-    if (recv(users[user_index].ad, &messageLength, sizeof(int), 0) > 0) {
-      printf("Taille : %d\n", messageLength);
-      char* msg = calloc(messageLength, sizeof(char));
-      // Reçoie un message de l'envoyeur
-      if (recv(users[user_index].ad, msg, messageLength*sizeof(char), 0) > 0) {
-        printf("Message reçu Client %d: %s\n",user_index, msg);
-
-        if (strcmp(msg, "fin\n") == 0) {
-          break;
-        }
-
-        // Transmission du message vers le receveur
-        broadcast(user_index, messageLength, msg);
+    int messageLength = recv_message_length(user_index);
+    if (messageLength <= 0) {
+      goto shutdown;
+    }
+    char* messageRecu;
+    int res = recv_message(user_index, messageLength, &messageRecu);
+    if (res <= 0) {
+      goto shutdown;
+    } else if (res == 1) {
+      if (strcmp(messageRecu, "fin\n") == 0) {
+        goto shutdown;
       }
-      free(msg);
-    } else {
-      break;
+      broadcast(user_index, messageRecu, messageLength);
     }
   }
+
+  shutdown:
   shutdown((long)users[user_index].ad, 2);
   pthread_mutex_lock(&mutex_lock);
   users[user_index].ad = -1;
@@ -103,51 +144,13 @@ void* transmission(void *t) {
 }
 
 /**
- * permet de recevoir la taille d'un message avec gestion d'erreur
- * @return {int} renvoie -1 si il y a une erreur lors de la reception
- *               sinon renvoie la taille du message
-*/
-int recv_message_length(int adresseClient){
-  int messageLength;
-  if(recv(adresseClient, &messageLength, sizeof(int), 0) <= 0){
-    return -1;
-  }
-  return messageLength;
-}
-
-/**
- * permet de recevoir un message
- * @params {int adresseClient, int messageLength}
- * @return {MessageResult*} qui contient un errorCode et le message
-*/
-MessageResult* recv_message(int adresseClient, int messageLength){
-  MessageResult* message = malloc(sizeof(MessageResult));
-  if(message == NULL){
-    message->errorCode = -1;
-    message->message = "Erreur d'allocation memoire du type MessageResult"; // Pourquoi pas besoin d'allocation
-    return message;
-  }
-
-  message->message = malloc(messageLength*sizeof(char));
-
-  if (recv(adresseClient, message->message, messageLength*sizeof(char), 0) <= 0){
-    message->errorCode = -1;
-    message->message = "Erreur lors de la recption du message";
-    return message;
-  }
-
-  message->errorCode = 1;
-  return message;
-}
-
-/**
  * permet de connecter un client en lui demandant son username
 */
 void connect_users() {
   while(1) {
     int index = empty_client(); // recupere l'index du nouveau client dans le tableau de clients
 
-    while(index > -1) { // ?
+    while(index > -1) { // Continue a accepter tant qu'il y a de la place
 
       printf("\x1b[34m");
 
@@ -155,32 +158,9 @@ void connect_users() {
       struct sockaddr_in aC;
       users[index].ad = accept(dS, (struct sockaddr*) &aC,&lg); // On connecte la connection avec le client et on stock l'adresse
 
-      int messageLength;
-      messageLength = recv_message_length(users[index].ad);
-      if(messageLength == -1){
-        perror("erreur taille message");
-        exit(EXIT_FAILURE);
-      }
-      printf("Taille : %d\n", messageLength);
-
-      MessageResult* messageResult = recv_message(users[index].ad, messageLength);
-      if(messageResult->errorCode == -1){
-        printf("%s", messageResult->message);
-        exit(EXIT_FAILURE);
-      }
-      char* message = messageResult->message;
-      printf("Message reçu Client %d: %s\n",index, message);
-
-      users[index].username = message;
-
-      printf("%s Connecté\n", users[index].username);
-
       pthread_create(&users[index].thread, 0, transmission, (void*)(long)index);
 
       index = empty_client();
-
-      free(messageResult->message);
-      free(messageResult);
     }
   }
 }

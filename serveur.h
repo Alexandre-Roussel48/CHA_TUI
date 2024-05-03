@@ -21,4 +21,4 @@ void init();
 void connect_users();
 int empty_client();
 void *transmission(void *t);
-void broadcast(int index, int messageLength, char* msg);
+void broadcast(int index, char* msg, int messageLength);

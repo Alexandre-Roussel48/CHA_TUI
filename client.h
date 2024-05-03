@@ -13,9 +13,11 @@
 #define PORT 5001
 
 void sigint_handler(int signal);
-void init(char* address);
-int find_first_slash(char *str);
+int ask_username();
+int send_message(char* message);
+int rcv_message();
 void* saisie();
 void* reception();
+void init(char* address);
 
 #endif
