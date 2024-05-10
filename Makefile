@@ -1,11 +1,12 @@
 CC = gcc
 CFLAGS = -Wall -o
 SRCSSERV = srcServeur/*.c
+SRCSCLI = srcClient/*.c
 
 all: client serveur
 
 client: client.c
-	$(CC) -Wall $^ -o $@
+	$(CC) $(CFLAGS) $@ $^ $(SRCSCLI)
 
 serveur: serveur.c
 	$(CC) $(CFLAGS) $@ $^ $(SRCSSERV)
