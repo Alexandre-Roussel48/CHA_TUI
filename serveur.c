@@ -1,5 +1,12 @@
 #include "srcServeur/headers/chat.h"
 
+chat_args args;
+
+void sigint_handler(int sig) {
+	shutdownServer(&args);
+    exit(0);
+}
+
 int main(int argc, char *argv[]) {
 	// Vérification des paramètres
 	if(argc != 3){
@@ -7,7 +14,8 @@ int main(int argc, char *argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	chat_args args;
+	signal(SIGINT, sigint_handler);
+
 	createChat(atoi(argv[1]), atoi(argv[2]), &args);
 
 	while(1) {

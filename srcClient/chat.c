@@ -24,10 +24,50 @@ void createChat(chat_args* args, char* address, int port) {
   *args = res;
 }
 
+int countLines(char* msg) {
+  int lines = 0;
+  while (*msg != '\0') {
+      if (*msg == '\n') {
+          lines++;
+      }
+      msg++;
+  }
+  int msgSize = strlen(msg) % 80;
+  return (lines > msgSize) ? lines : msgSize;
+}
+
 int recvMessage(chat_args *args) {
-  // reception taille message
+  // reception username
   int messageLength;
-  int res = recv(args->dS, &messageLength, sizeof(int), 0);
+  int res;
+
+  res = recv(args->dS, &messageLength, sizeof(int), 0);
+  if (res < 0) {
+    perror("messageLength receive failed\n");
+    return -1;
+  } else if (res == 0 || messageLength == -1) {
+    return 0;
+  }
+
+  char* username = (char*)malloc(messageLength);
+  res = recv(args->dS, username, messageLength*sizeof(char), 0);
+  // gestion erreur de la reception du message
+  if (res < 0) {
+    free(username);
+    perror("message receive failed\n");
+    return -1;
+  } else if (res == 0) {
+    free(username);
+    return 0;
+  }
+  if (messageLength > 1) {
+    username[messageLength-2] = '\0';
+  } else {
+    username = "";
+  }
+
+  // reception taille message
+  res = recv(args->dS, &messageLength, sizeof(int), 0);
   // gestion erreur de la reception de la taille
   if (res < 0) {
     perror("messageLength receive failed\n");
@@ -48,8 +88,10 @@ int recvMessage(chat_args *args) {
     free(messageRecu);
     return 0;
   }
-  printf("\033[s\033[1L\t/> %s\033[u\033[1B", messageRecu); // affichage plus joli
+  int nbLignes = countLines(messageRecu);
+  printf("\033[s\033[%dL\t/%s> %s\033[u\033[%dB", nbLignes, username, messageRecu, nbLignes); // affichage plus joli
   fflush(stdout); // force la maj de la sortie standard
+  if (strcmp(username, "") != 0) {free(username);}
   free(messageRecu);
   return 1;
 }
@@ -117,10 +159,6 @@ void* saisie(void* t){
     fgets(messageEnvoie, args->tailleMess, stdin);
 
     res = sendMessage(args, messageEnvoie);
-
-    if(strcmp(messageEnvoie, "fin\n") == 0){
-      res = -1;
-    }
     
     free(messageEnvoie);
   }
@@ -139,7 +177,6 @@ int launchChat(chat_args* args) {
   pthread_create(&res.tsaisie, NULL, saisie, (void*)args); // Envoie d'un message
   pthread_create(&res.treception, NULL, reception, (void*)args); // Reception d'un message
 
-  pthread_join(res.tsaisie, 0);
   pthread_join(res.treception, 0);
 
   *args = res;
