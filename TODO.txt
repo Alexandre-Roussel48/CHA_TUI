@@ -34,7 +34,7 @@ Sprint 2
     [x]Définir un protocole pour les commandes particulières envoyées en messages depuis le client( exemple @... sur discord ) (cf README)
     []Création d’une fonction/commande message privé, un client peut choisir d’envoyer à un autre client en particulier
         [x]ajout d’un pseudo lors de la connexion d’un client et utilisation du pseudo pour les échanges privé
-        []Gestion d’erreur coté serveur sur l’existence du destinataire
+        [x]Gestion d’erreur coté serveur sur l’existence du destinataire
         []Gestion pseudo déjà existant
     []Création d’une fonction/commande de déconnexion, une commande permet au client de se déconnecter, le serveur, enlève le client de la liste, clôt alors la connexion (shutdown ou close) puis finit le thread associé, cette commande n’agit pas sur les autres clients.
     []Ajout d’un sémaphore indiquant le nombre de place restante sur le serveur pour faciliter le remplacement de client et assurer un nombre de client maximum
