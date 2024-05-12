@@ -3,7 +3,7 @@ CFLAGS = -Wall -o
 SRCSSERV = srcServeur/*.c
 SRCSCLI = srcClient/*.c
 
-all: client serveur
+all: clean client serveur
 
 client: client.c
 	$(CC) $(CFLAGS) $@ $^ $(SRCSCLI)
