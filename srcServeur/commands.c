@@ -16,7 +16,7 @@ int checkCommand(char* msg, pthread_mutex_t mutex_lock) {
 }
 
 void commands(int index, user* users) {
-	char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n";
+	char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n/bye : exit from chat\n";
 	sendUsername(index, users, "");
 	sendMsg(index, list, strlen(list) + 1, users);
 }
