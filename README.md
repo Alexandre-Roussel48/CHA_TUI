@@ -5,20 +5,17 @@ make
 
 ## Exécution
 ```bash
-./serveur
-./client1 127.0.0.1 (sur le port 5001)
-./client2 127.0.0.1 (sur le port 5001)
+./serveur <nb_clients> <port>
+./client <ip_adress> <port>
 ```
 
 ## Commandes
 
 ### Liste
-!membres    Liste les membres connectés au serveur
-
-### Affichage de motifs spéciaux
-/shrug      envoie ¯\_(ツ)_/¯
-/tableflip  envoie (╯°□°)╯︵ ┻━┻
-/unflip     envoie ┬─┬ノ( º _ ºノ)
-
-### Envoie de message à des personnes
-@[username] [message] envoie un message à une personne en particulier
+```bash
+/commands : list all the commands
+/members : list all members of chat
+/whisper <username> <message> : send a private message to a specific user
+/kick <username> : kick a specific user
+/bye : exit from chat
+```
