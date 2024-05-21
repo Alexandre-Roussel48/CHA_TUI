@@ -158,6 +158,8 @@ void* saisie(void* t){
     printf("\t> ");
     fgets(messageEnvoie, args->tailleMess, stdin);
 
+    
+
     res = sendMessage(args, messageEnvoie);
     
     free(messageEnvoie);

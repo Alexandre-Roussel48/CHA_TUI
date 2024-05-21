@@ -14,6 +14,7 @@ typedef struct {
 	int tailleMess;
     pthread_t tsaisie;
     pthread_t treception;
+    pthread_t tfile;
 } chat_args;
 
 void createChat(chat_args* args, char* address, int port);
