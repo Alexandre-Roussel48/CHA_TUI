@@ -19,7 +19,6 @@ int recvMsg(int index, int msgLength, char** msg, user* users) {
 		users[index].username = msgRecv;
 		return 0;
 	}
-	printf("  $ %s  \x1b[34m%s\x1b[0m", users[index].username, msgRecv);
 	return 1;
 }
 
@@ -71,6 +70,9 @@ void* transmission(void *args) {
 			else if (command == 2) {whisper(t->index, msg, msgLength, t->chat.nb_clients, t->chat.users, t->chat.mutex_lock);}
 			else if (command == 3) {kick(t->index, msg, msgLength, t->chat.nb_clients, t->chat.users, t->chat.mutex_lock);}
 			else if (command == 4) {shutdownClient(t->index, t->chat.users, t->chat.mutex_lock);}
+			else if (command == 5) {recvFile(t->index, msg, msgLength, t->chat.users, t->chat.mutex_lock);}
+			else if (command == 6) {listFiles(t->index, t->chat.users);}
+			else if (command == 7) {sendFile(t->index, msg, msgLength, t->chat.users, t->chat.mutex_lock);}
 		}
 	} while(1);
 

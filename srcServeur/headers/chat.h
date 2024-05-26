@@ -18,6 +18,7 @@ typedef struct {
 	int ad;
 	char* username;
 	pthread_t thread;
+	pthread_t threadFile;
 } user;
 
 typedef struct {
@@ -48,5 +49,8 @@ void commands(int index, user* users);
 void members(int index, int nbClients, user* users);
 void whisper(int index, char* msg, int msgLength, int nbClients, user* users, pthread_mutex_t mutex_lock);
 void kick(int index, char* msg, int msgLength, int nbClients, user* users, pthread_mutex_t mutex_lock);
+void recvFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t mutex_lock);
+void listFiles(int index, user* users);
+void sendFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t mutex_lock);
 
 #endif
