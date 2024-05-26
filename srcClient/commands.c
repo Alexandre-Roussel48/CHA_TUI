@@ -87,8 +87,8 @@ int sendFile(chat_args* args) {
 void recvFile(chat_args* args) {
     int filenameLength;
     if ((filenameLength = recvMsgLength(args)) < 0) {
-        if (filenameLength == -2) {printf("\tThere is no file in server\n");}
-        else if (filenameLength == -3) {printf("\tThe number you sent is incorrect\n");}
+        if (filenameLength == -2) {display("", "There is no file in server\n");}
+        else if (filenameLength == -3) {display("", "The number you sent is incorrect\n");}
         return;
     }
 

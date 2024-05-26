@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#include <ctype.h>
 
 typedef struct {
 	int ad;

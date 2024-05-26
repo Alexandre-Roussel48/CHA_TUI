@@ -19,7 +19,7 @@ int checkCommand(char* msg, pthread_mutex_t mutex_lock) {
 }
 
 void commands(int index, user* users) {
-	char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n\t/bye : exit from chat\n";
+	char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n\t/sendFile : opens a prompt for file sending\n\t/listFiles : lists files from server\n\t/recvFile <number> : download file from server to local\n\t/bye : exit from chat\n";
 	sendUsername(index, users, "");
 	sendMsg(index, list, strlen(list) + 1, users);
 }
@@ -166,6 +166,22 @@ void listFiles(int index, user* users) {
     free(result);
 }
 
+int parse_file_index(const char* fileNumber) {
+    for (int i = 0; fileNumber[i] != '\n'; i++) {
+        if (!isdigit(fileNumber[i])) {
+            return -1;
+        }
+    }
+
+    int fileIndex = atoi(fileNumber);
+
+    if (fileIndex < 0) {
+        return -1;
+    }
+
+    return fileIndex;
+}
+
 void sendFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t mutex_lock) {
     char* msgCopy = (char*)calloc(msgLength, sizeof(char));
     strcpy(msgCopy, msg);
@@ -175,8 +191,7 @@ void sendFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t 
     fileNumber = strtok(NULL, " "); // "<number of file>"
     pthread_mutex_unlock(&mutex_lock);
 
-    fileNumber[1] = '\0';
-    int fileIndex = atoi(fileNumber);
+    int fileIndex = parse_file_index(fileNumber);
 
     FILE *fp;
     char path[1035];
