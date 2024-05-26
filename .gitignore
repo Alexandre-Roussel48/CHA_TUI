@@ -5,6 +5,9 @@ client1
 client2
 serveur
 
+filesClient/*
+filesServer/*
+
 .vscode
 CHA_TUI.mdj
 
