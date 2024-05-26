@@ -1,30 +1,7 @@
 #include "./headers/chat.h"
 
-/**
- * permet la création du socket
- * @params {char*} correspond à l'address du serveur
- * @return {int dS} retourne le descripteur du socket qui vient d'etre créé
-*/
-void createChat(chat_args* args, char* address, int port) {
-  chat_args res;
-  res.dS = socket(PF_INET, SOCK_STREAM, 0); // Création du socket pour le protocole TCP
-  res.tailleMess = 256;
-
-  struct sockaddr_in aS;
-  aS.sin_family = AF_INET; // L'IP du serveur sera une IPv4
-  inet_pton(AF_INET,address,&(aS.sin_addr)) ; // Permet de spécifier l'adresse du serveur sous forme binaire
-  aS.sin_port = htons(port) ; // Permet de spécifier le port sûr lequel se connecter sous forme binaire
-  socklen_t lgA = sizeof(struct sockaddr_in);
-
-  if (connect(res.dS, (struct sockaddr *) &aS, lgA) < 0) { // test de la connexion au serveur
-    perror("Connection failed");
-    exit(EXIT_FAILURE);
-  }
-
-  *args = res;
-}
-
 int countLines(char* msg) {
+  int msgSize = strlen(msg) / 66;
   int lines = 0;
   while (*msg != '\0') {
       if (*msg == '\n') {
@@ -32,68 +9,32 @@ int countLines(char* msg) {
       }
       msg++;
   }
-  int msgSize = strlen(msg) % 80;
   return (lines > msgSize) ? lines : msgSize;
 }
 
-int recvMessage(chat_args *args) {
-  // reception username
+int recvMsgLength(chat_args *args) {
   int messageLength;
-  int res;
+  if (recv(args->dS, &messageLength, sizeof(int), 0) <= 0) {return -1;} 
+  return messageLength;
+}
 
-  res = recv(args->dS, &messageLength, sizeof(int), 0);
-  if (res < 0) {
-    perror("messageLength receive failed\n");
+int recvMsg(chat_args *args, int messageLength, char** messageRecu) {
+  char* msg = (char*)malloc(messageLength);
+  if (recv(args->dS, msg, messageLength*sizeof(char), 0) <= 0) {
+    free(msg);
     return -1;
-  } else if (res == 0 || messageLength == -1) {
-    return 0;
-  }
-
-  char* username = (char*)malloc(messageLength);
-  res = recv(args->dS, username, messageLength*sizeof(char), 0);
-  // gestion erreur de la reception du message
-  if (res < 0) {
-    free(username);
-    perror("message receive failed\n");
-    return -1;
-  } else if (res == 0) {
-    free(username);
-    return 0;
-  }
-  if (messageLength > 1) {
-    username[messageLength-2] = '\0';
-  } else {
-    username = "";
   }
 
-  // reception taille message
-  res = recv(args->dS, &messageLength, sizeof(int), 0);
-  // gestion erreur de la reception de la taille
-  if (res < 0) {
-    perror("messageLength receive failed\n");
-    return -1;
-  } else if (res == 0) {
-    return 0;
-  }
-
-  // reception message
-  char* messageRecu = (char*)malloc(messageLength);
-  res = recv(args->dS, messageRecu, messageLength*sizeof(char), 0);
-  // gestion erreur de la reception du message
-  if (res < 0) {
-    free(messageRecu);
-    perror("message receive failed\n");
-    return -1;
-  } else if (res == 0) {
-    free(messageRecu);
-    return 0;
-  }
-  int nbLignes = countLines(messageRecu);
-  printf("\033[s\033[%dL\t/%s> %s\033[u\033[%dB", nbLignes, username, messageRecu, nbLignes); // affichage plus joli
-  fflush(stdout); // force la maj de la sortie standard
-  if (strcmp(username, "") != 0) {free(username);}
-  free(messageRecu);
+  *messageRecu = msg;
   return 1;
+}
+
+void display(char* username, char* msg) {
+  int nbLignes = countLines(msg);
+  printf("\033[s\033[%dL", nbLignes);
+  printf("\t/%s> %s", username, msg);
+  printf("\033[u\033[%dB", nbLignes);
+  fflush(stdout); // force la maj de la sortie standard
 }
 
 /**
@@ -123,10 +64,13 @@ int askUsername(chat_args *args) {
   char* messageEnvoie = (char*)malloc(args->tailleMess);
   printf("\t> Veuillez entrer votre Username :\n");
   printf("\t> ");
-  fgets(messageEnvoie, args->tailleMess, stdin);
-  if (sendMessage(args, messageEnvoie) < 0) {
-    perror("Username binding failed\n");
-    return -1;
+  if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
+    sendMessage(args, "/bye\n");
+  } else {
+    if (sendMessage(args, messageEnvoie) < 0) {
+      perror("Username binding failed\n");
+      return -1;
+    }
   }
   return 1;
 }
@@ -138,10 +82,23 @@ int askUsername(chat_args *args) {
 */
 void* reception(void* t){
   chat_args* args = (chat_args*)t;
-  int res = 1;
-  while(res == 1){
-    res = recvMessage(args);
-  }
+  
+  int msgLength;
+  char* username;
+  char* msg;
+  do {
+    if ((msgLength = recvMsgLength(args)) <= 0) {break;}
+    if (recvMsg(args, msgLength, &username) < 0) {break;}
+    if (msgLength > 1) {username[msgLength-2] = '\0';}
+    else {username[0] = '\0';}
+
+    if ((msgLength = recvMsgLength(args)) <= 0) {break;}
+    if (recvMsg(args, msgLength, &msg) < 0) {break;}
+
+    display(username, msg);
+    free(username);
+    free(msg);
+  } while (1);
   pthread_exit(0);
 }
 
@@ -156,31 +113,29 @@ void* saisie(void* t){
   while(res == 1){
     char* messageEnvoie = malloc(args->tailleMess);
     printf("\t> ");
-    fgets(messageEnvoie, args->tailleMess, stdin);
-
-    
-
-    res = sendMessage(args, messageEnvoie);
+    if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
+      sendMessage(args, "/bye\n");
+    } else {
+      res = sendMessage(args, messageEnvoie);
+    }
     
     free(messageEnvoie);
   }
   pthread_exit(0);
 }
 
-int launchChat(chat_args* args) {
-  chat_args res = *args;
+void launchChat(chat_args* args) {
   printf("\x1b[34m"); // changement de couleur du texte pour la connexion
 
   // demande du nom d'utilisateur
-  if (askUsername(args) < 0) {return -1;}
+  if (askUsername(args) > 0) {
+    printf("\x1b[32m\n"); // changement de couleur du texte pour la discussion
 
-  printf("\x1b[32m\n"); // changement de couleur du texte pour la discussion
+    pthread_create(&args->tsaisie, NULL, saisie, (void*)args); // Envoie d'un message
+    pthread_create(&args->treception, NULL, reception, (void*)args); // Reception d'un message
 
-  pthread_create(&res.tsaisie, NULL, saisie, (void*)args); // Envoie d'un message
-  pthread_create(&res.treception, NULL, reception, (void*)args); // Reception d'un message
+    pthread_join(args->treception, 0);
+  }
 
-  pthread_join(res.treception, 0);
-
-  *args = res;
-  return -1;
+  shutdownClient(args);
 }
