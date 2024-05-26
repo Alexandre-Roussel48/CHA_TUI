@@ -17,7 +17,7 @@ typedef struct {
     pthread_t tfile;
 } chat_args;
 
-void createChat(chat_args* args, char* address, int port);
+/* chat.c */
 int countLines(char* msg);
 int recvMsgLength(chat_args *args);
 int recvMsg(chat_args *args, int messageLength, char** messageRecu);
@@ -27,6 +27,14 @@ int askUsername(chat_args *args);
 void* reception(void* t);
 void* saisie(void* t);
 void launchChat(chat_args* args);
+
+/* commands.c */
+int checkCommand(char* msg);
+int sendFile(chat_args* args);
+void recvFile(chat_args* args);
+
+/* connexion.c */
+void createChat(chat_args* args, char* address, int port);
 void shutdownClient(chat_args* args);
 
 #endif

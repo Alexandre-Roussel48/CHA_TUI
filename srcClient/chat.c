@@ -95,7 +95,11 @@ void* reception(void* t){
     if ((msgLength = recvMsgLength(args)) <= 0) {break;}
     if (recvMsg(args, msgLength, &msg) < 0) {break;}
 
-    display(username, msg);
+    int command;
+    if ((command = checkCommand(msg)) < 0) {
+      display(username, msg);
+    }
+    else if (command == 1) {recvFile(args);}
     free(username);
     free(msg);
   } while (1);
@@ -109,18 +113,20 @@ void* reception(void* t){
 */
 void* saisie(void* t){
   chat_args* args = (chat_args*)t;
-  int res=1;
-  while(res == 1){
+
+  do {
     char* messageEnvoie = malloc(args->tailleMess);
     printf("\t> ");
     if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
       sendMessage(args, "/bye\n");
     } else {
-      res = sendMessage(args, messageEnvoie);
+      int command;
+      if ((command = checkCommand(messageEnvoie)) < 0) {if (sendMessage(args, messageEnvoie) < 1) {break;}}
+      else if (command == 0) {sendFile(args);}
     }
     
     free(messageEnvoie);
-  }
+  } while (1);
   pthread_exit(0);
 }
 
