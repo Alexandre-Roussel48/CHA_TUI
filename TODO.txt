@@ -43,3 +43,16 @@ Sprint 2
     []Ajout d’une commande permettant de lister les fonctionnalités disponibles pour le client, stockées dans un fichier texte ( manuel ).
     [x]Lock mutex pour les fonctions strtok
     [x]Gestion affichage pour message multiligne
+
+Sprint 3
+
+    [x] Blocage client jusqu'a recv du signal depart serveur (pour eviter que le client puisse taper des trucs avant qu'il soit accepte)
+    [] Telechargement fichiers
+        [] Lancement d'un thread cote client apres selection du fichier
+        [] Envoie un message au serveur pour indiquer q'un telechargement arrive
+        [] Le serveur lance un thread pour telecharger le fichier
+        [] Envoie les donnees bloc par bloc
+        [] Fermeture des threads
+        [] implementation des commandes /sendfile et /recvfile
+    [x] Fix affichage, texte disparait si reception message pendant ecriture et ">" ne s'affiche plus apres reception de message
+    [x] Check seg fault si client fait ctrl-D on connect ( client : messageLength send failed : Connection reset by peer) (serveur : Segmentation fault (core dumped) )
