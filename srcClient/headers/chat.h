@@ -18,11 +18,15 @@ typedef struct {
 } chat_args;
 
 void createChat(chat_args* args, char* address, int port);
-int recvMessage(chat_args *args);
+int countLines(char* msg);
+int recvMsgLength(chat_args *args);
+int recvMsg(chat_args *args, int messageLength, char** messageRecu);
+void display(char* username, char* msg);
 int sendMessage(chat_args *args, char* message);
 int askUsername(chat_args *args);
 void* reception(void* t);
 void* saisie(void* t);
-int launchChat(chat_args* args);
+void launchChat(chat_args* args);
+void shutdownClient(chat_args* args);
 
 #endif
