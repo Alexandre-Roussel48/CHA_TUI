@@ -94,6 +94,8 @@ int acceptUser(chat_args* args) {
 		*args = res;
 		pthread_mutex_unlock(&args->mutex_lock);
 		printf("Client %d connected\n", index);
+		int startCode = 1;
+		send(res.users[index].ad, &startCode, sizeof(int), 0);
 		return index;
 	}
 	return -1;
