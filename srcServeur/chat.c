@@ -1,91 +1,110 @@
 #include "headers/chat.h"
 
-int recvMsgLength(int index, user* users) {
-	int msgLength;
-	if (recv(users[index].ad, &msgLength, sizeof(int), 0) <= 0) {return -1;}
-	return msgLength;
-}
-
-int recvMsg(int index, int msgLength, char** msg, user* users) {
-	char* msgRecv = (char*)malloc(msgLength);
-	if (recv(users[index].ad, msgRecv, msgLength*sizeof(char), 0) <= 0) {
-		free(msgRecv);
-		return -1;
-	}
-
-	*msg = msgRecv;
-	if (users[index].username==NULL) {
-		printf("Client %d is named %s", index, msgRecv);
-		users[index].username = msgRecv;
-		return 0;
-	}
-	return 1;
-}
-
-int sendUsername(int index, user* users, char* username) {
-	int usernameLength = strlen(username) + 1;
-	if (send(users[index].ad, &usernameLength, sizeof(int), 0) < 0) {return -1;}
-	if (send(users[index].ad, username, usernameLength*sizeof(char), 0) < 0) {return -1;}
-	return 1;
-}
-
-int sendMsg(int index, char* msg, int msgLength, user* users) {
-	if (send(users[index].ad, &msgLength, sizeof(int), 0) < 0) {return -1;}
-	if (send(users[index].ad, msg, msgLength*sizeof(char), 0) < 0) {return -1;}
-	return 1;
-}
-
-void broadcast(int index, char* msg, int msgLength, chat_args* args) {
-	for (int i=0; i < args->nb_clients; i++) {
-		if (i != index && args->users[i].ad != -1) {
-			sendUsername(i, args->users, args->users[index].username);
-			sendMsg(i, msg, msgLength, args->users);
-		}
-	}
-	free(msg);
-}
-
-void* transmission(void *args) {
-	typedef struct {int index; chat_args chat;} trans_args;
-
-	trans_args* t = (trans_args*)args;
-
-	int msgLength;
-	char* msg;
-	do {
-		if ((msgLength = recvMsgLength(t->index, t->chat.users)) <= 0) {
-			shutdownClient(t->index, t->chat.users, t->chat.mutex_lock);
-			break;
-		}
-		int res;
-		if ((res = recvMsg(t->index, msgLength, &msg, t->chat.users)) < 0) {
-			shutdownClient(t->index, t->chat.users, t->chat.mutex_lock);
-			break;
-		}
-		if (res > 0) {
-			int command;
-			if ((command = checkCommand(msg, t->chat.mutex_lock)) < 0) {broadcast(t->index, msg, msgLength, &t->chat);}
-			else if (command == 0) {commands(t->index, t->chat.users);}
-			else if (command == 1) {members(t->index, t->chat.nb_clients, t->chat.users);}
-			else if (command == 2) {whisper(t->index, msg, msgLength, t->chat.nb_clients, t->chat.users, t->chat.mutex_lock);}
-			else if (command == 3) {kick(t->index, msg, msgLength, t->chat.nb_clients, t->chat.users, t->chat.mutex_lock);}
-			else if (command == 4) {shutdownClient(t->index, t->chat.users, t->chat.mutex_lock);}
-			else if (command == 5) {recvFile(t->index, msg, msgLength, t->chat.users, t->chat.mutex_lock);}
-			else if (command == 6) {listFiles(t->index, t->chat.users);}
-			else if (command == 7) {sendFile(t->index, msg, msgLength, t->chat.users, t->chat.mutex_lock);}
-		}
-	} while(1);
-
-	printf("Client %d disconnected\n", t->index);
-	pthread_exit(0);
-}
-
-
-void launchChat(int index, chat_args* args) {
-	typedef struct {int index; chat_args chat;} trans_args;
+/**
+ * Starts a chat session for a connected client.
+ * 
+ * @param index Index of the client.
+ * @param server Pointer to the ChatServer structure.
+ */
+void startChatSession(int index, ChatServer* server) {
+	typedef struct {int index; ChatServer server;} trans_args;
 
 	trans_args* t = (trans_args*)malloc(sizeof(trans_args));
 	t->index = index;
-	t->chat = *args;
-	pthread_create(&args->users[index].thread, 0, transmission, (void*)t);
+	t->server = *server;
+	pthread_create(&server->clients[index].thread, 0, handleClient, (void*)t);
+}
+
+/**
+ * Handles message transmission for a client.
+ * 
+ * @param args Pointer to the ChatServer structure.
+ * @return NULL
+ */
+void* handleClient(void* args) {
+	typedef struct {int index; ChatServer server;} trans_args;
+	trans_args* t = (trans_args*)args;
+
+	int index = t->index;
+	ChatServer server = t->server;
+
+	char* msg;
+	do {
+		if (receiveMessage(index, &msg, &server) < 0) {
+			removeClient(index, &server);
+			break;
+		}
+
+		int command;
+		if ((command = processCommand(msg, &server)) < 0) {broadcastMessage(index, msg, &server);}
+		else if (command == 0) {listCommands(index, &server);}
+		else if (command == 1) {listClients(index, &server);}
+		else if (command == 2) {privateMessage(index, msg, &server);}
+		else if (command == 3) {kickClient(index, msg, &server);}
+		else if (command == 4) {removeClient(index, &server);}
+	
+	} while (1);
+
+	printf("Client %d disconnected\n", index);
+	pthread_exit(0);
+}
+
+/**
+ * Receives a message from a client.
+ * 
+ * @param index Index of the client.
+ * @param msg Pointer to the buffer to store the received message.
+ * @param server Pointer to the ChatServer structure.
+ * @return Length of the received message or -1 on failure.
+ */
+int receiveMessage(int index, char** msg, ChatServer* server) {
+	int msgLength;
+	if (recv(server->clients[index].chat_socket, &msgLength, sizeof(int), 0) <= 0) {return -1;}
+	char* msgRecv = (char*)calloc(msgLength, sizeof(char));
+	if (recv(server->clients[index].chat_socket, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
+
+	if (server->clients[index].username == NULL) {
+		printf("Client %d is named %s", index, msgRecv);
+		server->clients[index].username = msgRecv;
+		return 0;
+	}
+
+	*msg = msgRecv;
+	return 1;
+}
+
+/**
+ * Sends a message to a client.
+ * 
+ * @param sender Index of the sender.
+ * @param receiver Index of the receiver.
+ * @param username Username to be sent.
+ * @param msg Message to be sent.
+ * @param server Pointer to the ChatServer structure.
+ * @return 0 on success or -1 on failure.
+ */
+int sendMessage(int receiver, const char* username, const char* msg, ChatServer* server) {
+	int usernameLength = strlen(username) + 1;
+	if (send(server->clients[receiver].chat_socket, &usernameLength, sizeof(int), 0) < 0) {return -1;}
+	if (send(server->clients[receiver].chat_socket, username, usernameLength*sizeof(char), 0) < 0) {return -1;}
+
+	int msgLength = strlen(msg) + 1;
+	if (send(server->clients[receiver].chat_socket, &msgLength, sizeof(int), 0) < 0) {return -1;}
+	if (send(server->clients[receiver].chat_socket, msg, msgLength*sizeof(char), 0) < 0) {return -1;}
+	return 0;
+}
+
+/**
+ * Broadcasts a message to all clients except the sender.
+ * 
+ * @param sender_index Index of the client who sent the message.
+ * @param msg Message to be broadcasted.
+ * @param server Pointer to the ChatServer structure.
+ */
+void broadcastMessage(int index, const char* msg, ChatServer* server) {
+	for (int i=0; i < server->max_clients; i++) {
+		if (i != index && server->clients[i].chat_socket != -1) {
+			sendMessage(i, server->clients[index].username, msg, server);
+		}
+	}
 }

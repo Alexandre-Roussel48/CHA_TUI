@@ -4,54 +4,49 @@
 #include <pthread.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
-#include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/sem.h>
-#include <sys/ipc.h>
-#include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
-#include <ctype.h>
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/sem.h>
 
+/* User structure to hold information about each connected client */
 typedef struct {
-	int ad;
-	char* username;
-	pthread_t thread;
-	pthread_t threadFile;
-} user;
+    int chat_socket;
+    char* username;
+    pthread_t thread;
+} User;
 
+/* Chat server structure to hold server data */
 typedef struct {
-	int dS;
-	int nb_clients;
-	pthread_mutex_t mutex_lock;
-	user* users;
-} chat_args;
+    int server_socket;
+    int file_server_socket;
+    int max_clients;
+    pthread_mutex_t lock;
+    User* clients;
+} ChatServer;
 
 /* connexion.c */
-void createChat(int nbClients, int port, chat_args* args);
-int acceptUser(chat_args* args);
-void shutdownClient(int index, user* users, pthread_mutex_t mutex_lock);
-void shutdownServer(chat_args* args);
+int initChatServer(int max_clients, int chat_port, int file_port, ChatServer* server);
+int acceptClient(ChatServer* server);
+int removeClient(int index, ChatServer* server);
+int shutdownServer(ChatServer* server);
 
 /* chat.c */
-void launchChat(int index, chat_args* args);
-void* transmission(void *args);
-int recvMsgLength(int index, user* users);
-int recvMsg(int index, int msgLength, char** msg, user* users);
-int sendUsername(int index, user* users, char* username);
-int sendMsg(int index, char* msg, int msgLength, user* users);
-void broadcast(int index, char* msg, int msgLength, chat_args* args);
+void startChatSession(int index, ChatServer* server);
+void* handleClient(void* args);
+int receiveMessage(int index, char** msg, ChatServer* server);
+int sendMessage(int receiver, const char* username, const char* msg, ChatServer* server);
+void broadcastMessage(int index, const char* msg, ChatServer* server);
 
 /* commands.c */
-int checkCommand(char* msg, pthread_mutex_t mutex_lock);
-void commands(int index, user* users);
-void members(int index, int nbClients, user* users);
-void whisper(int index, char* msg, int msgLength, int nbClients, user* users, pthread_mutex_t mutex_lock);
-void kick(int index, char* msg, int msgLength, int nbClients, user* users, pthread_mutex_t mutex_lock);
-void recvFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t mutex_lock);
-void listFiles(int index, user* users);
-void sendFile(int index, char* msg, int msgLength, user* users, pthread_mutex_t mutex_lock);
+int processCommand(const char* msg, ChatServer* server);
+void listCommands(int index, ChatServer* server);
+void listClients(int index, ChatServer* server);
+void privateMessage(int index, const char* msg, ChatServer* server);
+void kickClient(int index, const char* msg, ChatServer* server);
 
 #endif

@@ -1,78 +1,160 @@
 #include "headers/chat.h"
 
-void createChat(int nbClients, int port, chat_args* args) {
-	chat_args res;
+#define SEM_KEY "key.txt"
 
-	// Init of the socket
-	res.dS = socket(PF_INET, SOCK_STREAM, 0);
+/**
+ * Initializes the chat server, sets up the server sockets for chat and file transfer, and listens for incoming connections.
+ * 
+ * @param max_clients Maximum number of clients the server can handle.
+ * @param chat_port Port number on which the server will listen for chat connections.
+ * @param file_port Port number on which the server will listen for file transfer connections.
+ * @param server Pointer to the ChatServer structure.
+ * @return 0 if done or -1 on failure.
+ */
+int initChatServer(int max_clients, int chat_port, int file_port, ChatServer* server) {
+    struct sockaddr_in chat_addr, file_addr;
 
-	struct sockaddr_in ad;
-	ad.sin_family = AF_INET; // L'IP du serveur sera une IPv4
-	ad.sin_addr.s_addr = INADDR_ANY; // Permet d'écouter toutes les adresses
-	ad.sin_port = htons(port); // Permet de spécifier le port sûr lequel se connecter sous forme binaire
+    // Initialize server structure
+    server->max_clients = max_clients;
+    server->clients = (User*)malloc(sizeof(User) * max_clients);
+    if (!server->clients) {
+        perror("Failed to allocate memory for clients");
+        return -1;
+    }
+	for (int i=0; i<max_clients; i++) {
+		server->clients[i].chat_socket = -1;
+	}
+    pthread_mutex_init(&server->lock, NULL);
+
+    // Create chat socket
+    server->server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server->server_socket < 0) {
+        perror("Chat socket creation failed");
+        free(server->clients);
+        return -1;
+    }
+
+    // Create file transfer socket
+    server->file_server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (server->file_server_socket < 0) {
+        perror("File socket creation failed");
+        close(server->server_socket);
+        free(server->clients);
+        return -1;
+    }
 
 	int optval = 1;
-	setsockopt(res.dS, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)); // Permet de réutiliser un socket
 
-	if (bind(res.dS, (struct sockaddr*)&ad, sizeof(ad)) < 0) {
-		perror("Bind failed");
-		exit(EXIT_FAILURE);
-	}
+    // Prepare chat address
+    chat_addr.sin_family = AF_INET;
+    chat_addr.sin_addr.s_addr = INADDR_ANY;
+    chat_addr.sin_port = htons(chat_port);
+    setsockopt(server->server_socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)); // Permet de réutiliser un socket
 
-	listen(res.dS, 2);
+    // Prepare file transfer address
+    file_addr.sin_family = AF_INET;
+    file_addr.sin_addr.s_addr = INADDR_ANY;
+    file_addr.sin_port = htons(file_port);
+    setsockopt(server->file_server_socket, SOL_SOCKET, SO_REUSEADDR, &optval, sizeof(optval)); // Permet de réutiliser un socket
 
-	// Init of the number of clients
-	res.nb_clients = nbClients;
+    // Bind chat socket
+    if (bind(server->server_socket, (struct sockaddr*)&chat_addr, sizeof(chat_addr)) < 0) {
+        perror("Chat socket bind failed");
+        close(server->server_socket);
+        close(server->file_server_socket);
+        free(server->clients);
+        return -1;
+    }
 
-	// Init of users
-	res.users = (user*)malloc(nbClients*sizeof(user));
-	for (int i=0; i<nbClients; i++) {
-		res.users[i].ad = -1;
-	}
+    // Bind file transfer socket
+    if (bind(server->file_server_socket, (struct sockaddr*)&file_addr, sizeof(file_addr)) < 0) {
+        perror("File socket bind failed");
+        close(server->server_socket);
+        close(server->file_server_socket);
+        free(server->clients);
+        return -1;
+    }
 
-	// Init of sems
-	int cle=ftok("1234", 'r');
-	int idSem;
+    // Listen on chat socket
+    if (listen(server->server_socket, max_clients) < 0) {
+        perror("Chat socket listen failed");
+        close(server->server_socket);
+        close(server->file_server_socket);
+        free(server->clients);
+        return -1;
+    }
 
-	if((idSem=semget(cle, 1, IPC_CREAT | IPC_EXCL | 0600)) == -1){
-		perror("erreur semget : ");
-		exit(-1);
-	}
+    // Listen on file transfer socket
+    if (listen(server->file_server_socket, max_clients) < 0) {
+        perror("File socket listen failed");
+        close(server->server_socket);
+        close(server->file_server_socket);
+        free(server->clients);
+        return -1;
+    }
 
-	ushort tabinit[1];
-	tabinit[0] = nbClients;;
+    // Init of sems
+    int cle = ftok(SEM_KEY, 'r');
+    if (cle == -1) {
+        perror("ftok error");
+        return -1;
+    }
 
-	union semun{
-		int val;
-		struct semid_ds * buf;
-		ushort * array;
-	} valinit;
+    int idSem = semget(cle, 1, IPC_CREAT | IPC_EXCL | 0600);
+    if (idSem == -1) {
+        perror("semget error");
+        return -1;
+    }
 
-	valinit.array = tabinit;
+    ushort tabinit[1] = { max_clients };
 
-	if (semctl(idSem, 1, SETALL, valinit) == -1){
-		perror("erreur initialisation sem : ");
-		exit(1);
-	}
+    union semun {
+        int val;
+        struct semid_ds *buf;
+        ushort *array;
+    } valinit;
 
-	*args = res;
+    valinit.array = tabinit;
 
-	printf("Chat created\n");
+    if (semctl(idSem, 0, SETALL, valinit) == -1) {
+        perror("semctl initialization error");
+        return -1;
+    }
+
+    printf("Chat created\n");
+
+    return 0;
 }
 
-int emptyClient(int nbClients, user* users) {
-	for (int i=0; i<nbClients; i++) {
-		if (users[i].ad == -1) {
+int emptyClient(ChatServer* server) {
+	for (int i=0; i<server->max_clients; i++) {
+		if (server->clients[i].chat_socket == -1) {
 			return i;
 		}
 	}
 	return -1;
 }
 
-int acceptUser(chat_args* args) {
-	pthread_mutex_lock(&args->mutex_lock);
-	int cleSem = ftok("1234", 'r');
-	int idSem = semget(cleSem, 1, 0600);
+/**
+ * Accepts a new client connection for chat and file transfer, and adds the client to the server.
+ * 
+ * @param server Pointer to the ChatServer structure.
+ * @return Index of the newly connected client or -1 on failure.
+ */
+int acceptClient(ChatServer* server) {
+	pthread_mutex_lock(&server->lock);
+	
+    int cle = ftok(SEM_KEY, 'r');
+    if (cle == -1) {
+        perror("ftok error");
+        return -1;
+    }
+
+	int idSem = semget(cle, 1, 0600);
+    if (idSem == -1) {
+        perror("semget error");
+        return -1;
+    }
 
 	struct sembuf op[]={
 		{(ushort)0,(short)-1,0},
@@ -80,50 +162,70 @@ int acceptUser(chat_args* args) {
 		{(ushort)0, (short)0,0}};
 
 	semop(idSem,op,1);
-	pthread_mutex_unlock(&args->mutex_lock);
 
-	chat_args res = *args;
-	int index = emptyClient(res.nb_clients, res.users); // recupere l'index du nouveau client dans le tableau de clients
+	pthread_mutex_unlock(&server->lock);
+
+	int index = emptyClient(server); // recupere l'index du nouveau client dans le tableau de clients
 
 	if (index > -1) {
-		socklen_t lg = sizeof(struct sockaddr_in);
-		struct sockaddr_in aC;
-		res.users[index].ad = accept(res.dS, (struct sockaddr*) &aC,&lg); // On connecte la connection avec le client et on stock l'adresse
+		struct sockaddr_in client_addr;
+		socklen_t addr_len = sizeof(client_addr);
+		int new_socket;
 
-		pthread_mutex_lock(&args->mutex_lock);
-		*args = res;
-		pthread_mutex_unlock(&args->mutex_lock);
+		// Accept new chat connection
+		new_socket = accept(server->server_socket, (struct sockaddr*)&client_addr, &addr_len);
+		if (new_socket < 0) {
+		    perror("Accepting new chat client failed");
+		    return -1;
+		}
+
+		pthread_mutex_lock(&server->lock);
+		server->clients[index].chat_socket = new_socket;
+		pthread_mutex_unlock(&server->lock);
+
 		printf("Client %d connected\n", index);
 		int startCode = 1;
-		send(res.users[index].ad, &startCode, sizeof(int), 0);
+		send(server->clients[index].chat_socket, &startCode, sizeof(int), 0);
 		return index;
 	}
 	return -1;
 }
 
-void shutdownServer(chat_args* args) {
-	for (int i=0; i<args->nb_clients; i++) {
-		if (args->users[i].ad != -1) {
-			shutdownClient(i, args->users, args->mutex_lock);
-		}
-	}
-	shutdown(args->dS, 2);
-	int cle=ftok("1234", 'r');
-	int idSem = semget(cle, 1, 0600);
-	semctl(idSem, 0, IPC_RMID, NULL);
-	exit(0);
-}
-
-void shutdownClient(int index, user* users, pthread_mutex_t mutex_lock) {
+/**
+ * Shuts down a specific client connection and removes the client from the server.
+ * 
+ * @param index Index of the client to be removed.
+ * @param server Pointer to the ChatServer structure.
+ * @return 0 if done or -1 on failure.
+ */
+int removeClient(int index, ChatServer* server) {
 	int shutdownCode = -1;
-	send(users[index].ad, &shutdownCode, sizeof(int), 0);
-	pthread_mutex_lock(&mutex_lock);
-    shutdown(users[index].ad, 2);
-    users[index].ad = -1;
-    users[index].username = NULL;
-	int cleSem = ftok("1234", 'r');
-	int idSem = semget(cleSem, 1, 0600);
-	pthread_mutex_unlock(&mutex_lock);
+	send(server->clients[index].chat_socket, &shutdownCode, sizeof(int), 0);
+    pthread_mutex_lock(&server->lock);
+    if (index < 0 || index >= server->max_clients) {
+        pthread_mutex_unlock(&server->lock);
+        fprintf(stderr, "Invalid client index\n");
+        return -1;
+    }
+
+    // Close client socket and cleanup
+    close(server->clients[index].chat_socket);
+    free(server->clients[index].username);
+    server->clients[index].chat_socket = -1;
+
+    int cle = ftok(SEM_KEY, 'r');
+    if (cle == -1) {
+        perror("ftok error");
+        return -1;
+    }
+
+	int idSem = semget(cle, 1, 0600);
+    if (idSem == -1) {
+        perror("semget error");
+        return -1;
+    }
+
+    pthread_mutex_unlock(&server->lock);
 
 	struct sembuf op[]={
 		{(ushort)0,(short)-1,0},
@@ -131,4 +233,48 @@ void shutdownClient(int index, user* users, pthread_mutex_t mutex_lock) {
 		{(ushort)0, (short)0,0}};
 
 	semop(idSem,op+1,1);
+    return 0;
+}
+
+/**
+ * Shuts down the server, closes all client connections, and cleans up resources.
+ * 
+ * @param server Pointer to the ChatServer structure.
+ * @return 0 if done or -1 on failure.
+ */
+int shutdownServer(ChatServer* server) {
+    pthread_mutex_lock(&server->lock);
+
+    // Close all client connections
+    for (int i = 0; i < server->max_clients; i++) {
+		if (server->clients[i].chat_socket != -1) {
+			removeClient(i, server);
+		}
+    }
+
+    // Close server sockets
+    close(server->server_socket);
+    close(server->file_server_socket);
+
+    // Cleanup resources
+    free(server->clients);
+    
+    int cle = ftok(SEM_KEY, 'r');
+    if (cle == -1) {
+        perror("ftok error");
+        return -1;
+    }
+
+	int idSem = semget(cle, 1, 0600);
+    if (idSem == -1) {
+        perror("semget error");
+        return -1;
+    }
+    
+    pthread_mutex_unlock(&server->lock);
+    pthread_mutex_destroy(&server->lock);
+
+	semctl(idSem, 0, IPC_RMID, NULL);
+
+    return 0;
 }

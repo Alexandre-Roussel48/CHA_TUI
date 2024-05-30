@@ -1,6 +1,6 @@
 #include "srcServeur/headers/chat.h"
 
-chat_args args;
+ChatServer args;
 
 void sigint_handler(int sig) {
 	shutdownServer(&args);
@@ -9,19 +9,19 @@ void sigint_handler(int sig) {
 
 int main(int argc, char *argv[]) {
 	// Vérification des paramètres
-	if(argc != 3){
-		printf("Erreur: format de commande: ./serveur <NB_CLIENTS> <PORT>\n");
+	if(argc != 4){
+		printf("Erreur: format de commande: ./serveur <NB_CLIENTS> <PORT> <PORT_FILE>\n");
 		exit(EXIT_FAILURE);
 	}
 
 	signal(SIGINT, sigint_handler);
 
-	createChat(atoi(argv[1]), atoi(argv[2]), &args);
+	initChatServer(atoi(argv[1]), atoi(argv[2]), atoi(argv[3]), &args);
 
 	while(1) {
 		int index;
 		do {
-			if ((index = acceptUser(&args)) > -1) {launchChat(index, &args);}
+			if ((index = acceptClient(&args)) > -1) {startChatSession(index, &args);}
 		} while(index > -1);
 	}
 }
