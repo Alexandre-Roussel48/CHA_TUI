@@ -1,5 +1,10 @@
 #include "headers/chat.h"
 
+/**
+ * @brief Check if the message is a command
+ * 
+ * @param msg the message to check
+*/
 int checkCommand(char* msg) {
 	char* msgCopy = (char*)calloc(strlen(msg)+1, sizeof(char));
 	strcpy(msgCopy, msg);
@@ -10,6 +15,11 @@ int checkCommand(char* msg) {
 	return -1;
 }
 
+/**
+ * @brief Command send a file to the server
+ * 
+ * @param args the chat arguments
+*/
 int sendFile(chat_args* args) {
     FILE *fp;
     char path[1035];
@@ -17,7 +27,7 @@ int sendFile(chat_args* args) {
 
 	fp = popen("ls filesClient", "r");
     if (fp == NULL) {
-        printf("\tFailed to run command\n" );
+        printf("\tFailed to run command ls\n" );
         return -1;
     }
 
@@ -84,7 +94,13 @@ int sendFile(chat_args* args) {
     return 1;
 }
 
+/**
+ * @brief Command receive a file from the server
+ * 
+ * @param args the chat arguments
+*/
 void recvFile(chat_args* args) {
+    // Get filename length
     int filenameLength;
     if ((filenameLength = recvMsgLength(args)) < 0) {
         if (filenameLength == -2) {display("", "There is no file in server\n");}
@@ -92,8 +108,10 @@ void recvFile(chat_args* args) {
         return;
     }
 
+    // Get filename
     char* filename;
     if (recvMsg(args, filenameLength, &filename) < 0) {
+        display("", "Failed to receive filename\n");
         return;
     }
 
