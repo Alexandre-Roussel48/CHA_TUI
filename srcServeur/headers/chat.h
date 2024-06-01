@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
+#include <dirent.h>
 
 /* User structure to hold information about each connected client */
 typedef struct {
@@ -48,5 +49,13 @@ void listCommands(int index, ChatServer* server);
 void listClients(int index, ChatServer* server);
 void privateMessage(int index, const char* msg, ChatServer* server);
 void kickClient(int index, const char* msg, ChatServer* server);
+
+/* files.c */
+int acceptFileConnection(ChatServer* server);
+int receiveFileMessage(int dS, char** msg);
+void* receiveFileThread(void* args);
+void receiveFile(ChatServer* server);
+void* sendFileThread(void* args) 
+void sendFile(int index, ChatServer* server);
 
 #endif
