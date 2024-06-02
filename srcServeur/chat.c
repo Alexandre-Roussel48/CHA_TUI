@@ -64,6 +64,13 @@ void* handleClient(void* args) {
 int receiveMessage(int index, char** msg, ChatServer* server) {
 	int msgLength;
 	if (recv(server->clients[index].chat_socket, &msgLength, sizeof(int), 0) <= 0) {return -1;}
+	
+	if (server->clients[index].salon == -1) {
+		printf("Client %d is connected to salon %d\n", index, msgLength);
+		server->clients[index].salon = msgLength;
+		return 0;
+	}
+	
 	char* msgRecv = (char*)calloc(msgLength, sizeof(char));
 	if (recv(server->clients[index].chat_socket, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
 
@@ -107,7 +114,7 @@ int sendMessage(int receiver, const char* username, const char* msg, ChatServer*
  */
 void broadcastMessage(int index, const char* msg, ChatServer* server) {
 	for (int i=0; i < server->max_clients; i++) {
-		if (i != index && server->clients[i].chat_socket != -1) {
+		if (i != index && server->clients[index].salon == server->clients[i].salon && server->clients[i].chat_socket != -1) {
 			sendMessage(i, server->clients[index].username, msg, server);
 		}
 	}
