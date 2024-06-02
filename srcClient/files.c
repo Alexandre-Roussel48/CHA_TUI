@@ -202,20 +202,16 @@ void* receiveFileThread(void* t) {
  */
 void recvFile(chat_args* args) {
 
-    typedef struct {
-        int total;
-        char** filenames;
-    } files;
-
-    files file;
-    if(recv(args->dS, &file, sizeof(int), 0) <= 0) {return;}
-
-    for (int i = 0; i < file.total; i++) {
-        printf("\t%d : %s\n", i, file.filenames[i]);
+    int total;
+    total = recv(args->dS, &total, sizeof(int), 0);
+    char** filenames = (char**)malloc(sizeof(char*)*total);
+    for(int i=0; i<total; i++) {
+        receiveFileMessage(args->dS, &filenames[i]);
+        printf("\t%d : %s\n", i, filenames[i]);
     }
 
     int clientEntry;
-    printf("\tWhich file do you want to receive ? (enter the number) :");
+    printf("\tQuel fichier voulez-vous recevoir ? (entrez le nombre) : ");
     scanf("%d", &clientEntry);
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
 
@@ -226,7 +222,7 @@ void recvFile(chat_args* args) {
 
     transargs* t = (transargs*)malloc(sizeof(transargs));
     t->args = args;
-    t->filename = file.filenames[clientEntry];
+    t->filename = filenames[clientEntry];
 
     pthread_t thread;
     pthread_create(&thread, 0, receiveFileThread, (void*)t);
