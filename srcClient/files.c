@@ -27,15 +27,15 @@ int connectFileServer(chat_args* args) {
 void* sendFileThread(void* t) {
     // on définit les arguments de la fonction
     typedef struct {
-        chat_args* args;
+        chat_args args;
         char* filename;
     } transargs;
     transargs* trans = (transargs*)t;
-    chat_args* args = trans->args;
+    chat_args args = trans->args;
     char* filename = trans->filename;
 
     // connexion du client au serveur de fichier
-    int dS = connectFileServer(args);
+    int dS = connectFileServer(&args);
 
     // envoie du nom du fichier
     int filenameLength = strlen(filename);
@@ -63,9 +63,11 @@ void* sendFileThread(void* t) {
         if (send(dS, buffer, bytesRead, 0) < 0) {pthread_exit(0);}
     }
 
-    fclose(filePointer);
     display("", "File sent\n");
-    fflush(stdout);
+    fclose(filePointer);
+    free(filepath);
+    free(filename);
+    free(t);
 
     shutdown(dS, 2);
     pthread_exit(0);
@@ -101,12 +103,12 @@ void sendFile(chat_args* args) {
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
 
     typedef struct {
-        chat_args* args;
+        chat_args args;
         char* filename;
     } transargs;
 
     transargs* t = (transargs*)malloc(sizeof(transargs));
-    t->args = args;
+    t->args = *args;
 
     i = 0;
     while ((entry = readdir(dr)) != NULL) { // équivaut à command ls
@@ -137,8 +139,10 @@ void sendFile(chat_args* args) {
 int receiveFileMessage(int dS, char** msg) {
     int msgLength;
     if (recv(dS, &msgLength, sizeof(int), 0) <= 0) {return -1;}
+    printf("MSG LENGTH IS : %d\n", msgLength);
     char* msgRecv = (char*)calloc(msgLength, sizeof(char));
     if (recv(dS, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
+    printf("MSG IS : %s\n", msgRecv);
 
     *msg = msgRecv;
     return msgLength;
@@ -150,14 +154,14 @@ int receiveFileMessage(int dS, char** msg) {
 void* receiveFileThread(void* t) {
     // on définit les arguments de la fonction
     typedef struct {
-        chat_args* args;
+        chat_args args;
         char* filename;
     } transargs;
     transargs* trans = (transargs*)t;
-    chat_args* args = trans->args;
+    chat_args args = trans->args;
     char* filename = trans->filename;
 
-    int dS = connectFileServer(args);
+    int dS = connectFileServer(&args);
 
     // envoie du nom du fichier
     int filenameLength = strlen(filename) + 1;
@@ -185,10 +189,14 @@ void* receiveFileThread(void* t) {
         int blocLength = receiveFileMessage(dS, &bloc);
         fwrite(bloc, sizeof(char), blocLength, filePointer);
         wrote += blocLength;
+        free(bloc);
     }
 
+    display("", "File received\n");
     fclose(filePointer);
-    printf("File %s received\n", filename);
+    free(filepath);
+    free(filename);
+    free(t);
 
     shutdown(dS,2);
     pthread_exit(0);
@@ -200,28 +208,35 @@ void* receiveFileThread(void* t) {
  * @param server Pointer to the chat_args structure.
  */
 void recvFile(chat_args* args) {
-
+    pthread_mutex_lock(&args->lock);
     int total;
-    total = recv(args->dS, &total, sizeof(int), 0);
-    char** filenames = (char**)malloc(sizeof(char*)*total);
+    recv(args->dS, &total, sizeof(int), 0);
+    printf("TOTAL IS : %d\n", total);
+
+    char** filenames = (char**)calloc(sizeof(char*), total);
     for(int i=0; i<total; i++) {
         receiveFileMessage(args->dS, &filenames[i]);
         printf("\t%d : %s\n", i, filenames[i]);
     }
+
 
     int clientEntry;
     printf("\tQuel fichier voulez-vous recevoir ? (entrez le nombre) : ");
     scanf("%d", &clientEntry);
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
 
+    pthread_mutex_unlock(&args->lock);
+
     typedef struct {
-        chat_args* args;
+        chat_args args;
         char* filename;
     } transargs;
 
     transargs* t = (transargs*)malloc(sizeof(transargs));
-    t->args = args;
+    t->args = *args;
     t->filename = filenames[clientEntry];
+
+    free(filenames);
 
     pthread_t thread;
     pthread_create(&thread, 0, receiveFileThread, (void*)t);

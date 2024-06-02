@@ -95,11 +95,7 @@ void* reception(void* t){
     if ((msgLength = recvMsgLength(args)) <= 0) {break;}
     if (recvMsg(args, msgLength, &msg) < 0) {break;}
 
-    int command;
-    if ((command = checkCommand(msg)) < 0) {
-      display(username, msg);
-    }
-    else if (command == 1) {recvFile(args);}
+    display(username, msg);
     free(username);
     free(msg);
   } while (1);

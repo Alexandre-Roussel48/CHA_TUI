@@ -73,10 +73,13 @@ void* receiveFileThread(void* args) {
         int blocLength = receiveFileMessage(dS, &bloc);
         fwrite(bloc, sizeof(char), blocLength, filePointer);
         wrote += blocLength;
+        free(bloc);
     }
 
-    fclose(filePointer);
     printf("File %s received\n", filename);
+    fclose(filePointer);
+    free(filepath);
+    free(filename);
 
     shutdown(dS,2);
     pthread_exit(0);
@@ -106,7 +109,7 @@ void* sendFileThread(void* args) {
     snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
     FILE *filePointer;
-    filePointer = fopen(filename, "rb");
+    filePointer = fopen(filepath, "rb");
 
     if (filePointer == NULL) {pthread_exit(0);}
 
@@ -124,8 +127,10 @@ void* sendFileThread(void* args) {
         if (send(dS, buffer, bytesRead, 0) < 0) {pthread_exit(0);}
     }
 
-    fclose(filePointer);
     printf("File %s sent\n", filename);
+    fclose(filePointer);
+    free(filepath);
+    free(filename);
 
     shutdown(dS,2);
     pthread_exit(0);
@@ -139,7 +144,7 @@ void* sendFileThread(void* args) {
  */
 void sendFile(int index, ChatServer* server) {
     struct dirent *entry;
-    DIR *dr = opendir("srcServeur"); 
+    DIR *dr = opendir("filesServer"); 
   
     if (dr == NULL) { 
         printf("Could not open source directory" ); 
@@ -156,11 +161,18 @@ void sendFile(int index, ChatServer* server) {
 
     rewinddir(dr);
 
+    printf("TOTAL IS : %d\n", total);
     while ((entry = readdir(dr)) != NULL) {
         if (entry->d_type == DT_REG) {
             int fileLength = (strlen(entry->d_name) + 1) * sizeof(char);
             if (send(server->clients[index].chat_socket, &fileLength, sizeof(int), 0) < 0) {return;}
-            if (send(server->clients[index].chat_socket, entry->d_name, fileLength, 0) < 0) {return;}
+            printf("FILENAME LENGTH IS : %d\n", fileLength);
+            
+            char* filename = (char*)malloc(sizeof(char)*(strlen(entry->d_name)+1));
+            strcpy(filename, entry->d_name);
+            if (send(server->clients[index].chat_socket, filename, fileLength, 0) < 0) {return;}
+            printf("FILENAME IS : %s\n", filename);
+            free(filename);
         }
     }
 

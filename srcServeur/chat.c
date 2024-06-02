@@ -44,7 +44,7 @@ void* handleClient(void* args) {
 			else if (command == 3) {kickClient(index, msg, &server);}
 			else if (command == 4) {removeClient(index, &server);}
 			else if (command == 5) {receiveFile(&server);}
-			else if (command == 5) {sendFile(index, &server);}
+			else if (command == 6) {sendFile(index, &server);}
 		}
 	
 	} while (1);
