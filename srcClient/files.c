@@ -38,17 +38,16 @@ void* sendFileThread(void* t) {
     int dS = connectFileServer(args);
 
     // envoie du nom du fichier
-    int filenameLength = strlen(filename) + 1;
+    int filenameLength = strlen(filename);
     if(send(dS, &filenameLength, sizeof(int), 0) < 0) {pthread_exit(0);}
     if (send(dS, filename, strlen(filename)*sizeof(char), 0) < 0) {pthread_exit(0);}
 
     FILE *filePointer;
-    // MOVE TO THE RIGHT FOLDER
     const char *directory = "filesClient";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
     snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
-    filePointer = fopen(filename, "rb");
+    filePointer = fopen(filepath, "rb");
     if (filePointer == NULL) {pthread_exit(0);}
     fseek(filePointer, 0, SEEK_END); // déplace le curseur à la fin du fichier
     int fileLength = ftell(filePointer); // donne la position du curseur dans le fichier
