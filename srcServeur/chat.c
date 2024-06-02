@@ -29,19 +29,23 @@ void* handleClient(void* args) {
 	ChatServer server = t->server;
 
 	char* msg;
+	int res;
 	do {
-		if (receiveMessage(index, &msg, &server) < 0) {
+		if ((res = receiveMessage(index, &msg, &server)) < 0) {
 			removeClient(index, &server);
 			break;
 		}
-
-		int command;
-		if ((command = processCommand(msg, &server)) < 0) {broadcastMessage(index, msg, &server);}
-		else if (command == 0) {listCommands(index, &server);}
-		else if (command == 1) {listClients(index, &server);}
-		else if (command == 2) {privateMessage(index, msg, &server);}
-		else if (command == 3) {kickClient(index, msg, &server);}
-		else if (command == 4) {removeClient(index, &server);}
+		if (res > 0) {
+			int command;
+			if ((command = processCommand(msg, &server)) < 0) {broadcastMessage(index, msg, &server);}
+			else if (command == 0) {listCommands(index, &server);}
+			else if (command == 1) {listClients(index, &server);}
+			else if (command == 2) {privateMessage(index, msg, &server);}
+			else if (command == 3) {kickClient(index, msg, &server);}
+			else if (command == 4) {removeClient(index, &server);}
+			else if (command == 5) {receiveFile(&server);}
+			else if (command == 5) {sendFile(index, &server);}
+		}
 	
 	} while (1);
 

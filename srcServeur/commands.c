@@ -20,9 +20,8 @@ int processCommand(const char* msg, ChatServer* server) {
     else if (strcmp(msgTok, "/whisper") == 0) {free(msgCopy); return 2;}
     else if (strcmp(msgTok, "/kick") == 0) {free(msgCopy); return 3;}
     else if (strcmp(msgTok, "/bye\n") == 0) {free(msgCopy); return 4;}
-    else if (strcmp(msgTok, "/sendFile") == 0) {free(msgCopy); return 5;}
-    else if (strcmp(msgTok, "/listFiles\n") == 0) {free(msgCopy); return 6;}
-    else if (strcmp(msgTok, "/recvFile") == 0) {free(msgCopy); return 7;}
+    else if (strcmp(msgTok, "/sendFile\n") == 0) {free(msgCopy); return 5;}
+    else if (strcmp(msgTok, "/recvFile\n") == 0) {free(msgCopy); return 6;}
     return -1; 
 }
 
@@ -133,29 +132,3 @@ void kickClient(int index, const char* msg, ChatServer* server) {
     }
     free(msgCopy);
 }
-
-/**
- * Receives a file from a client.
- * 
- * @param index Index of the client.
- * @param filename Name of the file to be received.
- * @param server Pointer to the ChatServer structure.
- */
-void receiveFile(int index, const char* filename, ChatServer* server);
-
-/**
- * Lists all files to the requesting client.
- * 
- * @param index Index of the requesting client.
- * @param server Pointer to the ChatServer structure.
- */
-void listFiles(int index, ChatServer* server);
-
-/**
- * Sends a file to a client.
- * 
- * @param index Index of the client.
- * @param filename Name of the file to be sent.
- * @param server Pointer to the ChatServer structure.
- */
-void sendFile(int index, const char* filename, ChatServer* server);

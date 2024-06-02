@@ -136,7 +136,7 @@ int emptyClient(ChatServer* server) {
 }
 
 /**
- * Accepts a new client connection for chat and file transfer, and adds the client to the server.
+ * Accepts a new client connection for chat, and adds the client to the server.
  * 
  * @param server Pointer to the ChatServer structure.
  * @return Index of the newly connected client or -1 on failure.
