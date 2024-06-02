@@ -57,20 +57,28 @@ void* receiveFileThread(void* args) {
 
     const char *directory = "filesServer";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
-    snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
+    snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
     FILE *filePointer;
+    printf("FILEPATH IS : %s\n", filepath);
     filePointer = fopen(filepath, "wb");
 
-    if (filePointer == NULL) {pthread_exit(0);}
+    if (filePointer == NULL) {
+        printf("FILE POINTER IS NULL\n");
+        pthread_exit(0);
+    }
 
     int fileLength;
-    if (recv(dS, &fileLength, sizeof(int), 0) <= 0) {pthread_exit(0);}
+    if (recv(dS, &fileLength, sizeof(int), 0) <= 0) {
+        printf("FILE LENGTH IS NOT RECEIVED\n");
+        pthread_exit(0);
+    }
 
     int wrote = 0;
     while (wrote < fileLength) {
         char* bloc;
         int blocLength = receiveFileMessage(dS, &bloc);
+        printf("BLOC : %s\n", bloc);
         fwrite(bloc, sizeof(char), blocLength, filePointer);
         wrote += blocLength;
     }
@@ -103,7 +111,7 @@ void* sendFileThread(void* args) {
 
     const char *directory = "filesServer";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
-    snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
+    snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
     FILE *filePointer;
     filePointer = fopen(filename, "rb");

@@ -97,7 +97,7 @@ void sendFile(chat_args* args) {
     rewinddir(dr); // remet le pointeur de lecture au début du répertoire
 
     int clientEntry;
-    printf("\tWhich file do you want to send ? (enter the number) :");
+    printf("\tWhich file do you want to send ? (enter the number) : ");
     scanf("%d", &clientEntry);
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
 
