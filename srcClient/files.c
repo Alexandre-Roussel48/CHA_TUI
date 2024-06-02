@@ -79,14 +79,16 @@ void* sendFileThread(void* t) {
  * @param args Pointer to the chat_args structure.
  */
 void sendFile(chat_args* args) {
+    pthread_mutex_lock(&args->lock);
     struct dirent *entry;
     DIR *dr = opendir("filesClient"); 
   
     if (dr == NULL) { 
         printf("Could not open source directory" ); 
         return;
-    } 
- 
+    }
+
+    printf("\n");
     int i = 0;
     while ((entry = readdir(dr)) != NULL) { // équivaut à command ls
         if (entry->d_type == DT_REG) { /* If the entry is a regular file */
@@ -99,6 +101,7 @@ void sendFile(chat_args* args) {
 
     int clientEntry;
     printf("\tWhich file do you want to send ? (enter the number) : ");
+    fflush(stdout);
     scanf("%d", &clientEntry);
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
 
@@ -114,7 +117,7 @@ void sendFile(chat_args* args) {
     while ((entry = readdir(dr)) != NULL) { // équivaut à command ls
         if (entry->d_type == DT_REG) { /* If the entry is a regular file */
             if(i == clientEntry) {
-                printf("\tSending file %s\n", entry->d_name);
+                display("", "Sending file\n");
                 t->filename = (char*)malloc(sizeof(char)*(strlen(entry->d_name)+1));
                 strcpy(t->filename, entry->d_name);
                 break;
@@ -124,6 +127,9 @@ void sendFile(chat_args* args) {
     }
 
     closedir(dr);
+
+    fflush(stdout);
+    pthread_mutex_unlock(&args->lock);
 
     pthread_t thread;
     pthread_create(&thread, 0, sendFileThread, (void*)t);
@@ -139,10 +145,8 @@ void sendFile(chat_args* args) {
 int receiveFileMessage(int dS, char** msg) {
     int msgLength;
     if (recv(dS, &msgLength, sizeof(int), 0) <= 0) {return -1;}
-    printf("MSG LENGTH IS : %d\n", msgLength);
     char* msgRecv = (char*)calloc(msgLength, sizeof(char));
     if (recv(dS, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
-    printf("MSG IS : %s\n", msgRecv);
 
     *msg = msgRecv;
     return msgLength;
@@ -168,7 +172,7 @@ void* receiveFileThread(void* t) {
     if(send(dS, &filenameLength, sizeof(int), 0) < 0) {pthread_exit(0);}
     if (send(dS, filename, strlen(filename)*sizeof(char), 0) < 0) {pthread_exit(0);}
 
-    printf("Receiving %s\n", filename);
+    display("", "Receiving file\n");
 
     // reception du de la taille du fichier
     const char *directory = "filesClient";
@@ -211,21 +215,18 @@ void recvFile(chat_args* args) {
     pthread_mutex_lock(&args->lock);
     int total;
     recv(args->dS, &total, sizeof(int), 0);
-    printf("TOTAL IS : %d\n", total);
 
-    char** filenames = (char**)calloc(sizeof(char*), total);
+    char** filenames = (char**)calloc(total, sizeof(char*));
+    printf("\n");
     for(int i=0; i<total; i++) {
         receiveFileMessage(args->dS, &filenames[i]);
         printf("\t%d : %s\n", i, filenames[i]);
     }
-
-
     int clientEntry;
     printf("\tQuel fichier voulez-vous recevoir ? (entrez le nombre) : ");
+    fflush(stdout);
     scanf("%d", &clientEntry);
     while(getchar() != '\n'); // pour vider stdin à cause du scanf
-
-    pthread_mutex_unlock(&args->lock);
 
     typedef struct {
         chat_args args;
@@ -233,10 +234,18 @@ void recvFile(chat_args* args) {
     } transargs;
 
     transargs* t = (transargs*)malloc(sizeof(transargs));
+    char* filename = (char*)malloc(sizeof(char)*(strlen(filenames[clientEntry]+1)));
+    strcpy(filename, filenames[clientEntry]);
     t->args = *args;
-    t->filename = filenames[clientEntry];
+    t->filename = filename;
 
+    for (int i=0; i<total; i++) {
+        free(filenames[i]);
+    }
     free(filenames);
+
+    fflush(stdout);
+    pthread_mutex_unlock(&args->lock);
 
     pthread_t thread;
     pthread_create(&thread, 0, receiveFileThread, (void*)t);

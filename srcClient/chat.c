@@ -95,11 +95,43 @@ void* reception(void* t){
     if ((msgLength = recvMsgLength(args)) <= 0) {break;}
     if (recvMsg(args, msgLength, &msg) < 0) {break;}
 
-    display(username, msg);
+    int command;
+    if ((command = checkCommand(msg)) == 1) {recvFile(args);}
+    else {
+      display(username, msg);
+    }
+
     free(username);
     free(msg);
   } while (1);
   pthread_exit(0);
+}
+
+int check_stdin() {
+    fd_set readfds;
+    struct timeval tv;
+    int retval;
+
+    // Initialize the file descriptor set.
+    FD_ZERO(&readfds);
+    FD_SET(STDIN_FILENO, &readfds);
+
+    // Set the timeout to zero for a non-blocking check.
+    tv.tv_sec = 0;
+    tv.tv_usec = 0;
+
+    // Check if there is data available in stdin.
+    retval = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
+
+    // Return 1 if there is data available, 0 otherwise.
+    if (retval == -1) {
+        perror("select()");
+        return -1;
+    } else if (retval) {
+        return 1; // Data is available
+    } else {
+        return 0; // No data available
+    }
 }
 
 /**
@@ -110,19 +142,25 @@ void* reception(void* t){
 void* saisie(void* t){
   chat_args* args = (chat_args*)t;
 
+  printf("\t> ");
+  fflush(stdout);
   do {
-    char* messageEnvoie = malloc(args->tailleMess);
-    printf("\t> ");
-    if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
-      sendMessage(args, "/bye\n");
-    } else {
-      if (sendMessage(args, messageEnvoie) < 1) {break;}
-      int command;
-      if ((command = checkCommand(messageEnvoie)) == 0) {sendFile(args);}
-      else if (command == 1) {recvFile(args);}
+    pthread_mutex_lock(&args->lock);
+    printf("\r\t> ");
+    if (check_stdin() == 1) {
+      char* messageEnvoie = malloc(args->tailleMess);
+      if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
+        sendMessage(args, "/bye\n");
+      } else {
+        if (sendMessage(args, messageEnvoie) < 1) {break;}
+        int command;
+        if ((command = checkCommand(messageEnvoie)) == 0) {sendFile(args);}
+      }
+      free(messageEnvoie);
     }
+    usleep(100000);
+    pthread_mutex_unlock(&args->lock);
     
-    free(messageEnvoie);
   } while (1);
   pthread_exit(0);
 }

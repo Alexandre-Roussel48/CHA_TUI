@@ -161,17 +161,14 @@ void sendFile(int index, ChatServer* server) {
 
     rewinddir(dr);
 
-    printf("TOTAL IS : %d\n", total);
     while ((entry = readdir(dr)) != NULL) {
         if (entry->d_type == DT_REG) {
-            int fileLength = (strlen(entry->d_name) + 1) * sizeof(char);
+            int fileLength = strlen(entry->d_name) + 1;
             if (send(server->clients[index].chat_socket, &fileLength, sizeof(int), 0) < 0) {return;}
-            printf("FILENAME LENGTH IS : %d\n", fileLength);
             
-            char* filename = (char*)malloc(sizeof(char)*(strlen(entry->d_name)+1));
+            char* filename = (char*)malloc(sizeof(char)*fileLength);
             strcpy(filename, entry->d_name);
             if (send(server->clients[index].chat_socket, filename, fileLength, 0) < 0) {return;}
-            printf("FILENAME IS : %s\n", filename);
             free(filename);
         }
     }

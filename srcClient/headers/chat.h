@@ -9,6 +9,8 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <dirent.h>
+#include <sys/select.h>
+#include <unistd.h>
 
 typedef struct {
 	int dS;
