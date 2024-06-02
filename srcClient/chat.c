@@ -1,6 +1,6 @@
 #include "./headers/chat.h"
 
-int countLines(char* msg) {
+int countLines(const char* msg) {
   int msgSize = strlen(msg) / 66;
   int lines = 0;
   while (*msg != '\0') {
@@ -29,7 +29,7 @@ int recvMsg(chat_args *args, int messageLength, char** messageRecu) {
   return 1;
 }
 
-void display(char* username, char* msg) {
+void display(const char* username, const char* msg) {
   int nbLignes = countLines(msg);
   printf("\033[s\033[%dL", nbLignes);
   printf("\t/%s> %s", username, msg);
@@ -120,9 +120,10 @@ void* saisie(void* t){
     if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
       sendMessage(args, "/bye\n");
     } else {
+      if (sendMessage(args, messageEnvoie) < 1) {break;}
       int command;
-      if ((command = checkCommand(messageEnvoie)) < 0) {if (sendMessage(args, messageEnvoie) < 1) {break;}}
-      else if (command == 0) {sendFile(args);}
+      if ((command = checkCommand(messageEnvoie)) == 0) {sendFile(args);}
+      else if (command == 1) {recvFile(args);}
     }
     
     free(messageEnvoie);

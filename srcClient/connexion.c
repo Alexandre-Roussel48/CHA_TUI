@@ -5,10 +5,12 @@
  * @params {char*} correspond à l'address du serveur
  * @return {int dS} retourne le descripteur du socket qui vient d'etre créé
 */
-void createChat(chat_args* args, char* address, int port) {
+void createChat(chat_args* args, char* address, int port, int portFile) {
   chat_args res;
   res.dS = socket(PF_INET, SOCK_STREAM, 0); // Création du socket pour le protocole TCP
   res.tailleMess = 256;
+  res.portFileServer= portFile;
+  res.address = address;
 
   struct sockaddr_in aS;
   aS.sin_family = AF_INET; // L'IP du serveur sera une IPv4

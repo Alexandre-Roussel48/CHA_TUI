@@ -40,6 +40,12 @@ int receiveFileMessage(int dS, char** msg) {
     return msgLength;
 }
 
+/**
+ * Sends a message to a file client.
+ * 
+ * @param dS socket descriptor of file client.
+ * @param msg Message to send.
+ */
 void* receiveFileThread(void* args) {
     ChatServer* server = (ChatServer*)args;
     int dS = acceptFileConnection(server);
