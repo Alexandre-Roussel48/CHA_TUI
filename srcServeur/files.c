@@ -49,8 +49,7 @@ void* receiveFileThread(void* args) {
 
     printf("Receiving %s\n", filename);
 
-    // MOVE TO THE RIGHT FOLDER
-    const char *directory = "srcServeur";
+    const char *directory = "filesServer";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
     snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
 
@@ -67,12 +66,13 @@ void* receiveFileThread(void* args) {
         char* bloc;
         int blocLength = receiveFileMessage(dS, &bloc);
         fwrite(bloc, sizeof(char), blocLength, filePointer);
+        wrote += blocLength;
     }
 
     fclose(filePointer);
     printf("File %s received\n", filename);
 
-    close(dS);
+    shutdown(dS,2);
     pthread_exit(0);
 }
 
@@ -95,8 +95,11 @@ void* sendFileThread(void* args) {
 
     printf("sending %s\n", filename);
 
+    const char *directory = "filesServer";
+    char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
+    snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
+
     FILE *filePointer;
-    // MOVE TO THE RIGHT FOLDER
     filePointer = fopen(filename, "rb");
 
     if (filePointer == NULL) {pthread_exit(0);}
@@ -118,7 +121,7 @@ void* sendFileThread(void* args) {
     fclose(filePointer);
     printf("File %s sent\n", filename);
 
-    close(dS);
+    shutdown(dS,2);
     pthread_exit(0);
 }
 

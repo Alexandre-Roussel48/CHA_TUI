@@ -55,7 +55,7 @@ int acceptFileConnection(ChatServer* server);
 int receiveFileMessage(int dS, char** msg);
 void* receiveFileThread(void* args);
 void receiveFile(ChatServer* server);
-void* sendFileThread(void* args) 
+void* sendFileThread(void* args);
 void sendFile(int index, ChatServer* server);
 
 #endif
