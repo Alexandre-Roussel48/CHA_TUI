@@ -18,6 +18,7 @@
 typedef struct {
     int chat_socket;
     char* username;
+    int salon;
     pthread_t thread;
 } User;
 
@@ -26,12 +27,13 @@ typedef struct {
     int server_socket;
     int file_server_socket;
     int max_clients;
+    int nb_salons;
     pthread_mutex_t lock;
     User* clients;
 } ChatServer;
 
 /* connexion.c */
-int initChatServer(int max_clients, int chat_port, int file_port, ChatServer* server);
+int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons, ChatServer* server);
 int acceptClient(ChatServer* server);
 int removeClient(int index, ChatServer* server);
 int shutdownServer(ChatServer* server);

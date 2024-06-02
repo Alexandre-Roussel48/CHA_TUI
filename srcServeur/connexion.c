@@ -11,11 +11,12 @@
  * @param server Pointer to the ChatServer structure.
  * @return 0 if done or -1 on failure.
  */
-int initChatServer(int max_clients, int chat_port, int file_port, ChatServer* server) {
+int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons, ChatServer* server) {
     struct sockaddr_in chat_addr, file_addr;
 
     // Initialize server structure
     server->max_clients = max_clients;
+    server->nb_salons = nb_salons;
     server->clients = (User*)malloc(sizeof(User) * max_clients);
     if (!server->clients) {
         perror("Failed to allocate memory for clients");
@@ -23,6 +24,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, ChatServer* se
     }
 	for (int i=0; i<max_clients; i++) {
 		server->clients[i].chat_socket = -1;
+        server->clients[i].salon = -1;
 	}
     pthread_mutex_init(&server->lock, NULL);
 
@@ -186,6 +188,7 @@ int acceptClient(ChatServer* server) {
 		printf("Client %d connected\n", index);
 		int startCode = 1;
 		send(server->clients[index].chat_socket, &startCode, sizeof(int), 0);
+        send(server->clients[index].chat_socket, &server->nb_salons, sizeof(int), 0);
 		return index;
 	}
 	return -1;
@@ -243,15 +246,14 @@ int removeClient(int index, ChatServer* server) {
  * @return 0 if done or -1 on failure.
  */
 int shutdownServer(ChatServer* server) {
-    pthread_mutex_lock(&server->lock);
-
     // Close all client connections
     for (int i = 0; i < server->max_clients; i++) {
 		if (server->clients[i].chat_socket != -1) {
-			removeClient(i, server);
+            removeClient(i, server);
 		}
     }
 
+    pthread_mutex_lock(&server->lock);
     // Close server sockets
     shutdown(server->server_socket,2);
     shutdown(server->file_server_socket,2);

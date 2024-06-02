@@ -133,6 +133,15 @@ void* saisie(void* t){
 
 void launchChat(chat_args* args) {
   printf("\x1b[34m"); // changement de couleur du texte pour la connexion
+  
+  int nb_salons;
+  recv(args->dS, &nb_salons, sizeof(int), 0);
+
+  int salon;
+  printf("\tA quel salon souhaitez-vous vous connecter ? [0-%d] : ", nb_salons-1);
+  scanf("%d", &salon);
+  while (getchar() != '\n');
+  send(args->dS, &salon, sizeof(int), 0);
 
   // demande du nom d'utilisateur
   if (askUsername(args) > 0) {
