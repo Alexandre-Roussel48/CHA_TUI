@@ -209,7 +209,7 @@ int removeClient(int index, ChatServer* server) {
     }
 
     // Close client socket and cleanup
-    close(server->clients[index].chat_socket);
+    shutdown(server->clients[index].chat_socket,2);
     free(server->clients[index].username);
     server->clients[index].chat_socket = -1;
 
@@ -253,8 +253,8 @@ int shutdownServer(ChatServer* server) {
     }
 
     // Close server sockets
-    close(server->server_socket);
-    close(server->file_server_socket);
+    shutdown(server->server_socket,2);
+    shutdown(server->file_server_socket,2);
 
     // Cleanup resources
     free(server->clients);
