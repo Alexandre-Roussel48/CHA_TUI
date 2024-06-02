@@ -46,7 +46,7 @@ void* sendFileThread(void* t) {
     // MOVE TO THE RIGHT FOLDER
     const char *directory = "filesClient";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
-    snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
+    snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
     filePointer = fopen(filename, "rb");
     if (filePointer == NULL) {pthread_exit(0);}
@@ -170,7 +170,7 @@ void* receiveFileThread(void* t) {
     // reception du de la taille du fichier
     const char *directory = "filesClient";
     char* filepath = (char*)malloc(sizeof(char)*(strlen(directory)+strlen(filename)+2));
-    snprintf(filepath, strlen(filepath), "%s/%s", directory, filename);
+    snprintf(filepath, sizeof(char)*(strlen(directory)+strlen(filename)+2), "%s/%s", directory, filename);
 
     FILE *filePointer;
     filePointer = fopen(filepath, "wb");
