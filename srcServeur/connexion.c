@@ -33,6 +33,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
     if (server->server_socket < 0) {
         perror("Chat socket creation failed");
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -42,6 +43,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
         perror("File socket creation failed");
         close(server->server_socket);
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -65,6 +67,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
         close(server->server_socket);
         close(server->file_server_socket);
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -74,6 +77,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
         close(server->server_socket);
         close(server->file_server_socket);
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -83,6 +87,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
         close(server->server_socket);
         close(server->file_server_socket);
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -92,6 +97,7 @@ int initChatServer(int max_clients, int chat_port, int file_port, int nb_salons,
         close(server->server_socket);
         close(server->file_server_socket);
         free(server->clients);
+        server->clients = NULL;
         return -1;
     }
 
@@ -214,6 +220,7 @@ int removeClient(int index, ChatServer* server) {
     // Close client socket and cleanup
     shutdown(server->clients[index].chat_socket,2);
     free(server->clients[index].username);
+    server->clients[index].username = NULL;
     server->clients[index].chat_socket = -1;
 
     int cle = ftok(SEM_KEY, 'r');
@@ -260,6 +267,7 @@ int shutdownServer(ChatServer* server) {
 
     // Cleanup resources
     free(server->clients);
+    server->clients = NULL;
     
     int cle = ftok(SEM_KEY, 'r');
     if (cle == -1) {

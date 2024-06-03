@@ -19,7 +19,6 @@ typedef struct {
     int portFileServer;
     pthread_t tsaisie;
     pthread_t treception;
-    pthread_mutex_t lock;
 } chat_args;
 
 /* chat.c */

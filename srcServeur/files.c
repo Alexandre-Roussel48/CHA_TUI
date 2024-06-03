@@ -34,7 +34,7 @@ int receiveFileMessage(int dS, char** msg) {
     int msgLength;
     if (recv(dS, &msgLength, sizeof(int), 0) <= 0) {return -1;}
     char* msgRecv = (char*)calloc(msgLength, sizeof(char));
-    if (recv(dS, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
+    if (recv(dS, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); msgRecv = NULL; return -1;}
 
     *msg = msgRecv;
     return msgLength;
@@ -74,12 +74,15 @@ void* receiveFileThread(void* args) {
         fwrite(bloc, sizeof(char), blocLength, filePointer);
         wrote += blocLength;
         free(bloc);
+        bloc = NULL;
     }
 
     printf("File %s received\n", filename);
     fclose(filePointer);
     free(filepath);
+    filepath = NULL;
     free(filename);
+    filename = NULL;
 
     shutdown(dS,2);
     pthread_exit(0);
@@ -130,7 +133,9 @@ void* sendFileThread(void* args) {
     printf("File %s sent\n", filename);
     fclose(filePointer);
     free(filepath);
+    filepath = NULL;
     free(filename);
+    filename = NULL;
 
     shutdown(dS,2);
     pthread_exit(0);
@@ -170,6 +175,7 @@ void sendFile(int index, ChatServer* server) {
             strcpy(filename, entry->d_name);
             if (send(server->clients[index].chat_socket, filename, fileLength, 0) < 0) {return;}
             free(filename);
+            filename = NULL;
         }
     }
 

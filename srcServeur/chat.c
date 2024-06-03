@@ -38,11 +38,11 @@ void* handleClient(void* args) {
 		if (res > 0) {
 			int command;
 			if ((command = processCommand(msg, &server)) < 0) {broadcastMessage(index, msg, &server);}
-			else if (command == 0) {listCommands(index, &server);}
-			else if (command == 1) {listClients(index, &server);}
-			else if (command == 2) {privateMessage(index, msg, &server);}
-			else if (command == 3) {kickClient(index, msg, &server);}
-			else if (command == 4) {removeClient(index, &server);}
+			else if (command == 0) {printf("LIST\n"); listCommands(index, &server);}
+			else if (command == 1) {printf("MEMBERS\n"); listClients(index, &server);}
+			else if (command == 2) {printf("WHISPER\n"); privateMessage(index, msg, &server);}
+			else if (command == 3) {printf("KICK\n"); kickClient(index, msg, &server);}
+			else if (command == 4) {printf("BYE\n"); removeClient(index, &server); break;}
 			else if (command == 5) {receiveFile(&server);}
 			else if (command == 6) {
 				sendMessage(index, "", msg, &server);
@@ -75,7 +75,7 @@ int receiveMessage(int index, char** msg, ChatServer* server) {
 	}
 	
 	char* msgRecv = (char*)calloc(msgLength, sizeof(char));
-	if (recv(server->clients[index].chat_socket, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); return -1;}
+	if (recv(server->clients[index].chat_socket, msgRecv, msgLength*sizeof(char), 0) <= 0) {free(msgRecv); msgRecv = NULL; return -1;}
 
 	if (server->clients[index].username == NULL) {
 		printf("Client %d is named %s", index, msgRecv);

@@ -79,7 +79,6 @@ void* sendFileThread(void* t) {
  * @param args Pointer to the chat_args structure.
  */
 void sendFile(chat_args* args) {
-    pthread_mutex_lock(&args->lock);
     struct dirent *entry;
     DIR *dr = opendir("filesClient"); 
   
@@ -129,7 +128,6 @@ void sendFile(chat_args* args) {
     closedir(dr);
 
     fflush(stdout);
-    pthread_mutex_unlock(&args->lock);
 
     pthread_t thread;
     pthread_create(&thread, 0, sendFileThread, (void*)t);
@@ -212,7 +210,6 @@ void* receiveFileThread(void* t) {
  * @param server Pointer to the chat_args structure.
  */
 void recvFile(chat_args* args) {
-    pthread_mutex_lock(&args->lock);
     int total;
     recv(args->dS, &total, sizeof(int), 0);
 
@@ -245,7 +242,6 @@ void recvFile(chat_args* args) {
     free(filenames);
 
     fflush(stdout);
-    pthread_mutex_unlock(&args->lock);
 
     pthread_t thread;
     pthread_create(&thread, 0, receiveFileThread, (void*)t);

@@ -1,5 +1,7 @@
 #include "./headers/chat.h"
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 int countLines(const char* msg) {
   int msgSize = strlen(msg) / 66;
   int lines = 0;
@@ -96,7 +98,11 @@ void* reception(void* t){
     if (recvMsg(args, msgLength, &msg) < 0) {break;}
 
     int command;
-    if ((command = checkCommand(msg)) == 1) {recvFile(args);}
+    if ((command = checkCommand(msg)) == 1) {
+      pthread_mutex_lock(&mutex);
+      recvFile(args);
+      pthread_mutex_unlock(&mutex);
+    }
     else {
       display(username, msg);
     }
@@ -107,33 +113,6 @@ void* reception(void* t){
   pthread_exit(0);
 }
 
-int check_stdin() {
-    fd_set readfds;
-    struct timeval tv;
-    int retval;
-
-    // Initialize the file descriptor set.
-    FD_ZERO(&readfds);
-    FD_SET(STDIN_FILENO, &readfds);
-
-    // Set the timeout to zero for a non-blocking check.
-    tv.tv_sec = 0;
-    tv.tv_usec = 0;
-
-    // Check if there is data available in stdin.
-    retval = select(STDIN_FILENO + 1, &readfds, NULL, NULL, &tv);
-
-    // Return 1 if there is data available, 0 otherwise.
-    if (retval == -1) {
-        perror("select()");
-        return -1;
-    } else if (retval) {
-        return 1; // Data is available
-    } else {
-        return 0; // No data available
-    }
-}
-
 /**
  * permet au client de saisir un message
  * est utilisé dans un thread
@@ -142,24 +121,23 @@ int check_stdin() {
 void* saisie(void* t){
   chat_args* args = (chat_args*)t;
 
-  printf("\t> ");
-  fflush(stdout);
   do {
-    pthread_mutex_lock(&args->lock);
-    printf("\r\t> ");
-    if (check_stdin() == 1) {
-      char* messageEnvoie = malloc(args->tailleMess);
-      if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
-        sendMessage(args, "/bye\n");
-      } else {
-        if (sendMessage(args, messageEnvoie) < 1) {break;}
-        int command;
-        if ((command = checkCommand(messageEnvoie)) == 0) {sendFile(args);}
+    printf("\t> ");
+    fflush(stdout);
+    char* messageEnvoie = malloc(args->tailleMess);
+    if (fgets(messageEnvoie, args->tailleMess, stdin) == NULL) {
+      sendMessage(args, "/bye\n");
+    } else {
+      if (sendMessage(args, messageEnvoie) < 1) {break;}
+      int command;
+      if ((command = checkCommand(messageEnvoie)) == 0) {sendFile(args);}
+      if (command == 1) {
+        usleep(100000);
+        pthread_mutex_lock(&mutex);
+        pthread_mutex_unlock(&mutex);
       }
-      free(messageEnvoie);
     }
-    usleep(100000);
-    pthread_mutex_unlock(&args->lock);
+    free(messageEnvoie);
     
   } while (1);
   pthread_exit(0);

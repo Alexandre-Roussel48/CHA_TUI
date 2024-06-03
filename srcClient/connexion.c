@@ -11,7 +11,6 @@ void createChat(chat_args* args, char* address, int port, int portFile) {
   res.tailleMess = 256;
   res.portFileServer = portFile;
   res.address = address;
-  pthread_mutex_init(&args->lock, NULL);
 
   struct sockaddr_in aS;
   aS.sin_family = AF_INET; // L'IP du serveur sera une IPv4

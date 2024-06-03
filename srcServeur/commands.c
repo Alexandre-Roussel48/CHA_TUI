@@ -15,13 +15,13 @@ int processCommand(const char* msg, ChatServer* server) {
     char* msgTok = strtok(msgCopy, " ");
     pthread_mutex_unlock(&server->lock);
 
-    if (strcmp(msgTok, "/commands\n") == 0) {free(msgCopy); return 0;}
-    else if (strcmp(msgTok, "/members\n") == 0) {free(msgCopy); return 1;}
-    else if (strcmp(msgTok, "/whisper") == 0) {free(msgCopy); return 2;}
-    else if (strcmp(msgTok, "/kick") == 0) {free(msgCopy); return 3;}
-    else if (strcmp(msgTok, "/bye\n") == 0) {free(msgCopy); return 4;}
-    else if (strcmp(msgTok, "/sendFile\n") == 0) {free(msgCopy); return 5;}
-    else if (strcmp(msgTok, "/recvFile\n") == 0) {free(msgCopy); return 6;}
+    if (strcmp(msgTok, "/commands\n") == 0) {free(msgCopy); msgCopy = NULL; return 0;}
+    else if (strcmp(msgTok, "/members\n") == 0) {free(msgCopy); msgCopy = NULL; return 1;}
+    else if (strcmp(msgTok, "/whisper") == 0) {free(msgCopy); msgCopy = NULL; return 2;}
+    else if (strcmp(msgTok, "/kick") == 0) {free(msgCopy); msgCopy = NULL; return 3;}
+    else if (strcmp(msgTok, "/bye\n") == 0) {free(msgCopy); msgCopy = NULL; return 4;}
+    else if (strcmp(msgTok, "/sendFile\n") == 0) {free(msgCopy); msgCopy = NULL; return 5;}
+    else if (strcmp(msgTok, "/recvFile\n") == 0) {free(msgCopy); msgCopy = NULL; return 6;}
     return -1; 
 }
 
@@ -32,7 +32,7 @@ int processCommand(const char* msg, ChatServer* server) {
  * @param server Pointer to the ChatServer structure.
  */
 void listCommands(int index, ChatServer* server) {
-    char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n\t/sendFile : opens a prompt for file sending\n\t/listFiles : lists files from server\n\t/recvFile <number> : download file from server to local\n\t/bye : exit from chat\n";
+    char* list = "Commands :\n\t/commands : list all the commands\n\t/members : list all the members in chat\n\t/whisper <username> <message> : send a private message to someone\n\t/kick <username> : kick someone\n\t/sendFile : opens a prompt for file sending\n\t/recvFile : download file from server to local\n\t/bye : exit from chat\n";
     sendMessage(index, "", list, server); 
 }
 
@@ -57,6 +57,7 @@ void listClients(int index, ChatServer* server) {
     }
     sendMessage(index, "", list, server);
     free(list);
+    list = NULL;
 }
 
 /**
@@ -84,6 +85,7 @@ void privateMessage(int index, const char* msg, ChatServer* server) {
             usernameSliced[strlen(usernameSliced)-1] = '\0';
             if (strcmp(username, usernameSliced) == 0) {break;}
             free(usernameSliced);
+            usernameSliced = NULL;
         }
         whisperIndex += 1;
     }
@@ -98,6 +100,7 @@ void privateMessage(int index, const char* msg, ChatServer* server) {
         sendMessage(index, "", error, server);
     }
     free(msgCopy);
+    msgCopy = NULL;
 }
 
 /**
@@ -131,4 +134,5 @@ void kickClient(int index, const char* msg, ChatServer* server) {
         sendMessage(index, "", error, server);
     }
     free(msgCopy);
+    msgCopy = NULL;
 }
